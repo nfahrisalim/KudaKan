@@ -46,45 +46,57 @@
   --ring: hsl(346, 73%, 44%);
 }
 
+/* ==============================================
+  PERBAIKAN FINAL ADA DI SINI
+  ==============================================
+*/
 @layer base {
   * {
-    @apply border-border;
+    /* MENGGUNAKAN CSS STANDAR, BUKAN @apply */
+    border-color: var(--border);
   }
-  
+
   body {
-    @apply bg-background text-foreground font-inter antialiased;
+    /* MENGGUNAKAN CSS STANDAR, BUKAN @apply */
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: 'Inter', sans-serif; /* <-- PERBAIKAN UNTUK FONT-INTER */
+    -webkit-font-smoothing: antialiased; /* <-- INI ADALAH EFEK DARI CLASS `antialiased` */
+    -moz-osx-font-smoothing: grayscale; /* <-- INI JUGA DARI `antialiased` */
+    
     transition: background-color 0.3s ease, color 0.3s ease;
   }
 }
 
+/* Bagian ini sudah benar dan tidak perlu diubah */
 @layer components {
   .btn-primary {
     @apply px-6 py-3 bg-kudakan-red text-kudakan-white rounded-lg hover:bg-red-700 transition-all duration-300 flex items-center gap-2;
   }
-  
+
   .btn-secondary {
     @apply px-6 py-3 border border-kudakan-red text-kudakan-red dark:text-kudakan-red rounded-lg hover:bg-kudakan-red hover:text-kudakan-white transition-all duration-300 flex items-center gap-2;
   }
-  
+
   .card-hover {
     @apply hover:shadow-xl transition-all duration-300 hover:-translate-y-2;
   }
-  
+
   .fade-in {
     @apply animate-fade-in;
   }
-  
+
   .slide-up {
     @apply animate-slide-up;
   }
-  
+
   .navbar-solid {
     @apply bg-white dark:bg-gray-900;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     background-color: rgb(255, 255, 255) !important;
   }
-  
+
   .dark .navbar-solid {
     background-color: rgb(17, 24, 39) !important;
   }
