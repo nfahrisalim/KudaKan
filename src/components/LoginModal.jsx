@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-const LoginModal = ({ isOpen, onClose }) => {
+const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
   const [activeRole, setActiveRole] = useState('mahasiswa')
   const [formData, setFormData] = useState({
     email: '',
@@ -9,9 +9,35 @@ const LoginModal = ({ isOpen, onClose }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    // TODO: Implement login logic with API endpoint
-    console.log('Login form submitted:', { ...formData, role: activeRole })
-    onClose()
+    
+    // Simple validation - in real app, this would connect to backend
+    if (activeRole === 'mahasiswa') {
+      if (formData.email && formData.password) {
+        // Mock successful login for mahasiswa
+        const mockUser = {
+          type: 'mahasiswa',
+          nim: formData.email.includes('@') ? '21/483920/TK/53201' : formData.email,
+          name: 'Ahmad Rizki',
+          faculty: 'Teknik',
+          year: '2021'
+        }
+        onLoginSuccess(mockUser)
+        onClose()
+      }
+    } else if (activeRole === 'kantin') {
+      if (formData.email && formData.password) {
+        // Mock successful login for kantin
+        const mockUser = {
+          type: 'kantin',
+          kantinId: 'KNT001',
+          kantinName: 'Kantin Pusat',
+          ownerName: 'Ibu Sari',
+          location: 'Gedung Pusat'
+        }
+        onLoginSuccess(mockUser)
+        onClose()
+      }
+    }
   }
 
   const handleInputChange = (e) => {
