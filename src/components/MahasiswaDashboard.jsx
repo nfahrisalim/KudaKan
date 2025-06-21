@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import HorseLogo from './HorseLogo.jsx'
 import { menuAPI, pesananAPI, detailPesananAPI, kantinAPI } from '../services/api.js'
 
 const MahasiswaDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {

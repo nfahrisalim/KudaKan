@@ -18,10 +18,10 @@ const KantinDashboard = ({ user, onLogout }) => {
   useEffect(() => {
     const fetchData = async () => {
       if (!user.id) return
-      
+
       try {
         setLoading(true)
-        
+
         // Fetch menu items untuk kantin ini
         const menus = await menuAPI.getByKantin(user.id)
         const menuData = menus.map(menu => ({
@@ -34,15 +34,15 @@ const KantinDashboard = ({ user, onLogout }) => {
           type: menu.tipe_menu,
           originalData: menu
         }))
-        
+
         setMenuItems(menuData)
-        
+
         // Fetch pesanan untuk kantin ini
         const kantinOrders = await pesananAPI.getByKantin(user.id)
         const ordersWithDetails = await Promise.all(
           kantinOrders.map(async (order) => {
             const details = await pesananAPI.getWithDetails(order.id_pesanan)
-            
+
             return {
               id: order.id_pesanan,
               customerName: details.mahasiswa?.nama || 'Unknown',
@@ -62,9 +62,9 @@ const KantinDashboard = ({ user, onLogout }) => {
             }
           })
         )
-        
+
         setOrders(ordersWithDetails)
-        
+
       } catch (error) {
         console.error('Error fetching data:', error)
       } finally {
@@ -79,7 +79,7 @@ const KantinDashboard = ({ user, onLogout }) => {
     try {
       const apiStatus = newStatus === 'completed' ? 'selesai' : 'proses'
       await pesananAPI.updateStatus(orderId, apiStatus)
-      
+
       setOrders(orders.map(order => 
         order.id === orderId ? { ...order, status: newStatus } : order
       ))
@@ -108,14 +108,14 @@ const KantinDashboard = ({ user, onLogout }) => {
         harga: parseInt(newMenuItem.harga),
         tipe_menu: newMenuItem.tipe_menu
       }
-      
+
       let createdMenu
       if (selectedImage) {
         createdMenu = await menuAPI.createWithImage(menuData, selectedImage)
       } else {
         createdMenu = await menuAPI.create(menuData)
       }
-      
+
       const newMenu = {
         id: createdMenu.id_menu,
         name: createdMenu.nama_menu,
@@ -127,13 +127,13 @@ const KantinDashboard = ({ user, onLogout }) => {
         image: createdMenu.img_menu || getMenuEmoji(createdMenu.tipe_menu),
         originalData: createdMenu
       }
-      
+
       setMenuItems([...menuItems, newMenu])
       setNewMenuItem({ nama_menu: '', harga: '', tipe_menu: 'makanan' })
       setSelectedImage(null)
       setImagePreview(null)
       alert('Menu berhasil ditambahkan!')
-      
+
     } catch (error) {
       console.error('Error adding menu:', error)
       alert('Gagal menambahkan menu: ' + error.message)
@@ -370,7 +370,7 @@ const KantinDashboard = ({ user, onLogout }) => {
                           {getStatusText(order.status)}
                         </span>
                       </div>
-                      
+
                       <div className="mb-4">
                         <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Items:</p>
                         <ul className="text-sm text-gray-800 dark:text-gray-200">
@@ -487,7 +487,7 @@ const KantinDashboard = ({ user, onLogout }) => {
                       placeholder="Masukkan nama menu"
                     />
                   </div>
-                  
+
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Harga
@@ -500,7 +500,7 @@ const KantinDashboard = ({ user, onLogout }) => {
                       placeholder="Masukkan harga"
                     />
                   </div>
-                  
+
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Tipe Menu
@@ -515,7 +515,7 @@ const KantinDashboard = ({ user, onLogout }) => {
                       <option value="snack">Snack</option>
                     </select>
                   </div>
-                  
+
                   <div className="mb-6">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Gambar Menu (Opsional)
@@ -538,7 +538,7 @@ const KantinDashboard = ({ user, onLogout }) => {
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="flex space-x-3">
                     <button
                       onClick={handleAddMenuItem}
