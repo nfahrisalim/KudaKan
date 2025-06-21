@@ -106,7 +106,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
   return (
     <>
       <div className="fixed inset-0 bg-kudakan-black/50 z-50 flex items-center justify-center p-4">
-        <div className="bg-white/90 backdrop-blur-md rounded-xl max-w-md w-full p-6 relative shadow-xl">
+        <div className="bg-white/90 dark:bg-neutral-900/80 backdrop-blur-md rounded-xl max-w-md w-full p-6 relative shadow-xl">
           <button
             onClick={onClose}
             className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
@@ -144,11 +144,8 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
                   : 'bg-muted text-muted-foreground hover:bg-kudakan-red hover:text-kudakan-white'
               }`}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/>
-                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
-                <path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/>
-                <path d="M2 7h20"/>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-store-icon lucide-store">
+                <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/><path d="M22 7v3a2 2 0 0 1-2 2a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12a2 2 0 0 1-2-2V7"/>
               </svg>
               Kantin
             </button>
@@ -165,7 +162,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
                     name="nama"
                     value={formData.nama}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 border rounded-lg"
+                    className="w-full px-4 py-2 border border-border rounded-lg bg-white text-black placeholder-gray-500 dark:bg-neutral-800 dark:text-white dark:placeholder-gray-400 focus:ring-2 focus:ring-kudakan-red focus:outline-none"
                     placeholder="Masukkan nama lengkap"
                     required
                   />
@@ -177,7 +174,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
                     name="nim"
                     value={formData.nim}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-2 border rounded-lg"
+                    className="w-full px-4 py-2 border border-border rounded-lg bg-white text-black placeholder-gray-500 dark:bg-neutral-800 dark:text-white dark:placeholder-gray-400 focus:ring-2 focus:ring-kudakan-red focus:outline-none"
                     placeholder="Masukkan NIM"
                     required
                   />
@@ -194,7 +191,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
                   name="nama_kantin"
                   value={formData.nama_kantin}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border rounded-lg"
+                  className="w-full px-4 py-2 border border-border rounded-lg bg-white text-black placeholder-gray-500 dark:bg-neutral-800 dark:text-white dark:placeholder-gray-400 focus:ring-2 focus:ring-kudakan-red focus:outline-none"
                   placeholder="Masukkan nama kantin"
                   required
                 />
@@ -204,14 +201,14 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
             {/* Email */}
             <div className="mb-4">
               <label className="block text-sm font-medium mb-2">
-                {activeRole === 'mahasiswa' ? 'Email/NIM' : 'Email Kantin'}
+                {activeRole === 'mahasiswa' ? 'Email Mahasiswa' : 'Email Kantin'}
               </label>
               <input
                 type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border rounded-lg"
+                className="w-full px-4 py-2 border border-border rounded-lg bg-white text-black placeholder-gray-500 dark:bg-neutral-800 dark:text-white dark:placeholder-gray-400 focus:ring-2 focus:ring-kudakan-red focus:outline-none"
                 placeholder="Masukkan email"
                 required
               />
@@ -225,7 +222,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
                 name="password"
                 value={formData.password}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border rounded-lg"
+                className="w-full px-4 py-2 border border-border rounded-lg bg-white text-black placeholder-gray-500 dark:bg-neutral-800 dark:text-white dark:placeholder-gray-400 focus:ring-2 focus:ring-kudakan-red focus:outline-none"
                 placeholder="Masukkan password"
                 required
               />
