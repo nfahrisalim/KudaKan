@@ -115,6 +115,34 @@ export const menuAPI = {
     method: 'POST',
     body: JSON.stringify(data)
   }),
+
+  createWithImage: async (data, imageFile) => {
+    const token = getToken()
+    const formData = new FormData()
+    
+    formData.append('id_kantin', data.id_kantin)
+    formData.append('nama_menu', data.nama_menu)
+    formData.append('harga', data.harga)
+    formData.append('tipe_menu', data.tipe_menu)
+    
+    if (imageFile) {
+      formData.append('image', imageFile)
+    }
+    
+    const response = await fetch(`${API_BASE_URL}/menu/with-image`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`
+      },
+      body: formData
+    })
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    
+    return response.json()
+  },
   
   update: (id, data) => makeRequest(`/menu/${id}`, {
     method: 'PUT',

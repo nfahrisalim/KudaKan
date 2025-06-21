@@ -15,13 +15,13 @@ const MahasiswaDashboard = ({ user, onLogout }) => {
     const fetchData = async () => {
       try {
         setLoading(true)
-        
+
         // Fetch menu items
         const menus = await menuAPI.getAll()
-        
+
         // Fetch kantin list untuk mapping nama kantin
         const kantins = await kantinAPI.getAll()
-        
+
         // Map menu dengan info kantin
         const menuWithKantin = menus.map(menu => {
           const kantin = kantins.find(k => k.id_kantin === menu.id_kantin)
@@ -37,10 +37,10 @@ const MahasiswaDashboard = ({ user, onLogout }) => {
             originalData: menu
           }
         })
-        
+
         setMenuItems(menuWithKantin)
         setKantinList(kantins)
-        
+
         // Fetch pesanan mahasiswa
         if (user.id) {
           const userOrders = await pesananAPI.getByMahasiswa(user.id)
@@ -48,7 +48,7 @@ const MahasiswaDashboard = ({ user, onLogout }) => {
             userOrders.map(async (order) => {
               const details = await pesananAPI.getWithDetails(order.id_pesanan)
               const kantin = kantins.find(k => k.id_kantin === order.id_kantin)
-              
+
               return {
                 id: order.id_pesanan,
                 items: details.detail_pesanan?.map(d => {
@@ -63,10 +63,10 @@ const MahasiswaDashboard = ({ user, onLogout }) => {
               }
             })
           )
-          
+
           setOrders(ordersWithDetails)
         }
-        
+
       } catch (error) {
         console.error('Error fetching data:', error)
       } finally {
@@ -134,14 +134,14 @@ const MahasiswaDashboard = ({ user, onLogout }) => {
 
       // Clear cart and refresh orders
       setCart([])
-      
+
       // Refresh orders list
       const userOrders = await pesananAPI.getByMahasiswa(user.id)
       const ordersWithDetails = await Promise.all(
         userOrders.map(async (order) => {
           const details = await pesananAPI.getWithDetails(order.id_pesanan)
           const kantin = kantinList.find(k => k.id_kantin === order.id_kantin)
-          
+
           return {
             id: order.id_pesanan,
             items: details.detail_pesanan?.map(d => {
@@ -156,10 +156,10 @@ const MahasiswaDashboard = ({ user, onLogout }) => {
           }
         })
       )
-      
+
       setOrders(ordersWithDetails)
       alert('Pesanan berhasil dibuat!')
-      
+
     } catch (error) {
       console.error('Error creating order:', error)
       alert('Gagal membuat pesanan. Silakan coba lagi.')
@@ -173,19 +173,30 @@ const MahasiswaDashboard = ({ user, onLogout }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-3">
+              <img
+                src="https://raw.githubusercontent.com/Adrian29-gpu/Assets/main/logo_fix.png"
+                alt="Kudakan Logo"
+                className="w-10 h-10 object-contain"
+              />
               <div>
                 <h1 className="text-xl font-bold text-gray-900 dark:text-white">
                   Dashboard Mahasiswa
                 </h1>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Selamat datang, {user.name}
+                  {user.name} - {user.nim}
                 </p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                NIM: {user.nim}
-              </div>
+              <button
+                onClick={() => window.location.href = '/'}
+                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                Beranda
+              </button>
               <button
                 onClick={onLogout}
                 className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"

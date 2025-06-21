@@ -11,6 +11,8 @@ const KantinDashboard = ({ user, onLogout }) => {
     harga: '',
     tipe_menu: 'makanan'
   })
+  const [selectedImage, setSelectedImage] = useState(null)
+  const [imagePreview, setImagePreview] = useState(null)
 
   // Fetch data dari API
   useEffect(() => {
@@ -101,12 +103,18 @@ const KantinDashboard = ({ user, onLogout }) => {
 
     try {
       const menuData = {
-        ...newMenuItem,
         id_kantin: user.id,
-        harga: parseInt(newMenuItem.harga)
+        nama_menu: newMenuItem.nama_menu,
+        harga: parseInt(newMenuItem.harga),
+        tipe_menu: newMenuItem.tipe_menu
       }
       
-      const createdMenu = await menuAPI.create(menuData)
+      let createdMenu
+      if (selectedImage) {
+        createdMenu = await menuAPI.createWithImage(menuData, selectedImage)
+      } else {
+        createdMenu = await menuAPI.create(menuData)
+      }
       
       const newMenu = {
         id: createdMenu.id_menu,
@@ -116,16 +124,31 @@ const KantinDashboard = ({ user, onLogout }) => {
         stock: 50,
         sold: 0,
         type: createdMenu.tipe_menu,
+        image: createdMenu.img_menu || getMenuEmoji(createdMenu.tipe_menu),
         originalData: createdMenu
       }
       
       setMenuItems([...menuItems, newMenu])
       setNewMenuItem({ nama_menu: '', harga: '', tipe_menu: 'makanan' })
+      setSelectedImage(null)
+      setImagePreview(null)
       alert('Menu berhasil ditambahkan!')
       
     } catch (error) {
       console.error('Error adding menu:', error)
-      alert('Gagal menambahkan menu')
+      alert('Gagal menambahkan menu: ' + error.message)
+    }
+  }
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setSelectedImage(file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result)
+      }
+      reader.readAsDataURL(file)
     }
   }
 
@@ -181,19 +204,30 @@ const KantinDashboard = ({ user, onLogout }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-3">
+              <img
+                src="https://raw.githubusercontent.com/Adrian29-gpu/Assets/main/logo_fix.png"
+                alt="Kudakan Logo"
+                className="w-10 h-10 object-contain"
+              />
               <div>
                 <h1 className="text-xl font-bold text-gray-900 dark:text-white">
                   Dashboard Kantin
                 </h1>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {user.kantinName} - {user.ownerName}
+                  {user.kantinName}
                 </p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-600 dark:text-gray-400">
-                ID: {user.kantinId}
-              </div>
+              <button
+                onClick={() => window.location.href = '/'}
+                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                Beranda
+              </button>
               <button
                 onClick={onLogout}
                 className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
@@ -467,7 +501,7 @@ const KantinDashboard = ({ user, onLogout }) => {
                     />
                   </div>
                   
-                  <div className="mb-6">
+                  <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Tipe Menu
                     </label>
@@ -482,6 +516,29 @@ const KantinDashboard = ({ user, onLogout }) => {
                     </select>
                   </div>
                   
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Gambar Menu (Opsional)
+                    </label>
+                    <div className="flex flex-col space-y-3">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
+                      />
+                      {imagePreview && (
+                        <div className="mt-3">
+                          <img
+                            src={imagePreview}
+                            alt="Preview"
+                            className="w-32 h-32 object-cover rounded-lg border border-gray-300"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
                   <div className="flex space-x-3">
                     <button
                       onClick={handleAddMenuItem}
@@ -490,7 +547,12 @@ const KantinDashboard = ({ user, onLogout }) => {
                       Tambah Menu
                     </button>
                     <button
-                      onClick={() => setActiveTab('menu')}
+                      onClick={() => {
+                        setActiveTab('menu')
+                        setSelectedImage(null)
+                        setImagePreview(null)
+                        setNewMenuItem({ nama_menu: '', harga: '', tipe_menu: 'makanan' })
+                      }}
                       className="px-6 py-2 border border-gray-300 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
                       Batal

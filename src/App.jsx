@@ -61,7 +61,7 @@ function App() {
   return (
     <ThemeProvider>
       <div className="min-h-screen bg-background text-foreground">
-        <Navbar onLoginClick={() => setIsLoginModalOpen(true)} />
+        <Navbar onLoginClick={() => setIsLoginModalOpen(true)} currentUser={currentUser} />
         <main>
           <HeroSection />
           <AboutSection />

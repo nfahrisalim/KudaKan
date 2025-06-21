@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTheme } from './ThemeProvider.jsx'
 
-const Navbar = ({ onLoginClick }) => {
+const Navbar = ({ onLoginClick, currentUser }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const { theme, toggleTheme } = useTheme()
 
@@ -75,10 +75,19 @@ const Navbar = ({ onLoginClick }) => {
               )}
             </button>
 
-            {/* Login */}
-            <button onClick={onLoginClick} className="btn-primary">
-              Masuk
-            </button>
+            {/* Login/Dashboard Button */}
+            {currentUser ? (
+              <button 
+                onClick={() => window.location.reload()} 
+                className="btn-primary"
+              >
+                Dashboard
+              </button>
+            ) : (
+              <button onClick={onLoginClick} className="btn-primary">
+                Masuk
+              </button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -142,15 +151,27 @@ const Navbar = ({ onLoginClick }) => {
                   {section.charAt(0).toUpperCase() + section.slice(1)}
                 </button>
               ))}
-              <button
-                onClick={() => {
-                  onLoginClick()
-                  setIsMobileMenuOpen(false)
-                }}
-                className="btn-primary w-fit"
-              >
-                Masuk
-              </button>
+              {currentUser ? (
+                <button
+                  onClick={() => {
+                    window.location.reload()
+                    setIsMobileMenuOpen(false)
+                  }}
+                  className="btn-primary w-fit"
+                >
+                  Dashboard
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    onLoginClick()
+                    setIsMobileMenuOpen(false)
+                  }}
+                  className="btn-primary w-fit"
+                >
+                  Masuk
+                </button>
+              )}
             </div>
           </div>
         )}
