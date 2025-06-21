@@ -39,7 +39,7 @@ const Footer = () => {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
       ),
-      text: "Universitas Indonesia, Jakarta"
+      text: "Universitas Hasanuddin, Makassar"
     },
     {
       icon: (
@@ -107,7 +107,7 @@ const Footer = () => {
         </div>
         
         <div className="border-t border-gray-700 mt-8 pt-8 text-center">
-          <p className="text-sm text-gray-400">© 2024 Kudakan. All rights reserved.</p>
+          <p className="text-sm text-gray-400">© 2025 Kudakan. All rights reserved.</p>
         </div>
       </div>
     </footer>

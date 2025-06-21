@@ -14,7 +14,7 @@ const HeroSection = () => {
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 leading-tight fade-in">
               <span className="text-kudakan-red">Kudakan</span><br />
               Sistem Pemesanan <span className="text-kudakan-yellow">Kantin</span><br />
-              <span className="text-3xl md:text-4xl">Universitas</span>
+              <span className="text-3xl md:text-4xl">Universitas Hasanuddin</span>
             </h1>
             <p className="text-muted-foreground text-lg md:text-xl mb-8 max-w-md slide-up">
               Pesan makanan dan minuman favorit Anda di kantin universitas dengan mudah dan cepat.
