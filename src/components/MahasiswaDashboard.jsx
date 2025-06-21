@@ -1,62 +1,91 @@
-import { useState } from 'react'
-import HorseLogo from './HorseLogo.jsx'
+import { useState, useEffect } from 'react'
+import { menuAPI, pesananAPI, detailPesananAPI, kantinAPI } from '../services/api.js'
 
 const MahasiswaDashboard = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState('menu')
   const [cart, setCart] = useState([])
-  const [orders, setOrders] = useState([
-    {
-      id: 1,
-      items: ['Nasi Gudeg', 'Es Teh Manis'],
-      total: 25000,
-      status: 'Sedang Diproses',
-      date: '2025-06-20',
-      canteen: 'Kantin Pusat'
-    },
-    {
-      id: 2,
-      items: ['Ayam Geprek', 'Es Jeruk'],
-      total: 20000,
-      status: 'Selesai',
-      date: '2025-06-19',
-      canteen: 'Kantin Teknik'
-    }
-  ])
+  const [orders, setOrders] = useState([])
+  const [menuItems, setMenuItems] = useState([])
+  const [kantinList, setKantinList] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [currentPesanan, setCurrentPesanan] = useState(null)
 
-  const menuItems = [
-    {
-      id: 1,
-      name: 'Nasi Gudeg',
-      price: 15000,
-      canteen: 'Kantin Pusat',
-      image: '🍛',
-      available: true
-    },
-    {
-      id: 2,
-      name: 'Ayam Geprek',
-      price: 12000,
-      canteen: 'Kantin Teknik',
-      image: '🍗',
-      available: true
-    },
-    {
-      id: 3,
-      name: 'Gado-gado',
-      price: 10000,
-      canteen: 'Kantin Pusat',
-      image: '🥗',
-      available: true
-    },
-    {
-      id: 4,
-      name: 'Bakso',
-      price: 8000,
-      canteen: 'Kantin Ekonomi',
-      image: '🍜',
-      available: false
+  // Fetch data dari API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        
+        // Fetch menu items
+        const menus = await menuAPI.getAll()
+        
+        // Fetch kantin list untuk mapping nama kantin
+        const kantins = await kantinAPI.getAll()
+        
+        // Map menu dengan info kantin
+        const menuWithKantin = menus.map(menu => {
+          const kantin = kantins.find(k => k.id_kantin === menu.id_kantin)
+          return {
+            id: menu.id_menu,
+            name: menu.nama_menu,
+            price: parseInt(menu.harga),
+            canteen: kantin ? kantin.nama_kantin : 'Unknown',
+            image: getMenuEmoji(menu.tipe_menu),
+            available: true,
+            type: menu.tipe_menu,
+            kantinId: menu.id_kantin,
+            originalData: menu
+          }
+        })
+        
+        setMenuItems(menuWithKantin)
+        setKantinList(kantins)
+        
+        // Fetch pesanan mahasiswa
+        if (user.id) {
+          const userOrders = await pesananAPI.getByMahasiswa(user.id)
+          const ordersWithDetails = await Promise.all(
+            userOrders.map(async (order) => {
+              const details = await pesananAPI.getWithDetails(order.id_pesanan)
+              const kantin = kantins.find(k => k.id_kantin === order.id_kantin)
+              
+              return {
+                id: order.id_pesanan,
+                items: details.detail_pesanan?.map(d => {
+                  const menu = menus.find(m => m.id_menu === d.id_menu)
+                  return menu ? `${menu.nama_menu} (${d.jumlah}x)` : 'Unknown Item'
+                }) || [],
+                total: details.detail_pesanan?.reduce((sum, d) => sum + parseInt(d.harga_total), 0) || 0,
+                status: order.status === 'proses' ? 'Sedang Diproses' : 'Selesai',
+                date: new Date(order.tanggal).toLocaleDateString('id-ID'),
+                canteen: kantin ? kantin.nama_kantin : 'Unknown',
+                originalData: order
+              }
+            })
+          )
+          
+          setOrders(ordersWithDetails)
+        }
+        
+      } catch (error) {
+        console.error('Error fetching data:', error)
+      } finally {
+        setLoading(false)
+      }
     }
-  ]
+
+    fetchData()
+  }, [user.id])
+
+  // Helper function untuk emoji menu
+  const getMenuEmoji = (type) => {
+    switch (type) {
+      case 'makanan': return '🍛'
+      case 'minuman': return '🥤'
+      case 'snack': return '🍪'
+      default: return '🍽️'
+    }
+  }
 
   const addToCart = (item) => {
     setCart([...cart, { ...item, quantity: 1, cartId: Date.now() }])
@@ -70,6 +99,73 @@ const MahasiswaDashboard = ({ user, onLogout }) => {
     return cart.reduce((total, item) => total + (item.price * item.quantity), 0)
   }
 
+  const handleOrder = async () => {
+    if (cart.length === 0) return
+
+    try {
+      // Group cart items by kantin
+      const ordersByKantin = cart.reduce((acc, item) => {
+        const kantinId = item.kantinId
+        if (!acc[kantinId]) {
+          acc[kantinId] = []
+        }
+        acc[kantinId].push(item)
+        return acc
+      }, {})
+
+      // Create separate pesanan for each kantin
+      for (const [kantinId, items] of Object.entries(ordersByKantin)) {
+        // Create pesanan
+        const pesanan = await pesananAPI.create({
+          id_kantin: parseInt(kantinId),
+          id_mahasiswa: user.id,
+          status: 'proses'
+        })
+
+        // Add detail pesanan for each item
+        for (const item of items) {
+          await detailPesananAPI.createAutoCalculate(
+            pesanan.id_pesanan,
+            item.id,
+            item.quantity
+          )
+        }
+      }
+
+      // Clear cart and refresh orders
+      setCart([])
+      
+      // Refresh orders list
+      const userOrders = await pesananAPI.getByMahasiswa(user.id)
+      const ordersWithDetails = await Promise.all(
+        userOrders.map(async (order) => {
+          const details = await pesananAPI.getWithDetails(order.id_pesanan)
+          const kantin = kantinList.find(k => k.id_kantin === order.id_kantin)
+          
+          return {
+            id: order.id_pesanan,
+            items: details.detail_pesanan?.map(d => {
+              const menu = menuItems.find(m => m.id === d.id_menu)
+              return menu ? `${menu.name} (${d.jumlah}x)` : 'Unknown Item'
+            }) || [],
+            total: details.detail_pesanan?.reduce((sum, d) => sum + parseInt(d.harga_total), 0) || 0,
+            status: order.status === 'proses' ? 'Sedang Diproses' : 'Selesai',
+            date: new Date(order.tanggal).toLocaleDateString('id-ID'),
+            canteen: kantin ? kantin.nama_kantin : 'Unknown',
+            originalData: order
+          }
+        })
+      )
+      
+      setOrders(ordersWithDetails)
+      alert('Pesanan berhasil dibuat!')
+      
+    } catch (error) {
+      console.error('Error creating order:', error)
+      alert('Gagal membuat pesanan. Silakan coba lagi.')
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
@@ -77,7 +173,6 @@ const MahasiswaDashboard = ({ user, onLogout }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-3">
-              <HorseLogo />
               <div>
                 <h1 className="text-xl font-bold text-gray-900 dark:text-white">
                   Dashboard Mahasiswa
@@ -214,7 +309,10 @@ const MahasiswaDashboard = ({ user, onLogout }) => {
                         <span className="text-lg font-semibold text-gray-900 dark:text-white">Total:</span>
                         <span className="text-2xl font-bold text-red-600">Rp {getTotalCart().toLocaleString()}</span>
                       </div>
-                      <button className="w-full bg-red-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-red-700 transition-colors">
+                      <button 
+                        onClick={handleOrder}
+                        className="w-full bg-red-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-red-700 transition-colors"
+                      >
                         Pesan Sekarang
                       </button>
                     </div>

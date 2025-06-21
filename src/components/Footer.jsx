@@ -1,5 +1,4 @@
 import { FiInstagram, FiTwitter, FiFacebook, FiMapPin, FiPhone, FiMail } from 'react-icons/fi'
-import HorseLogo from './HorseLogo.jsx'
 
 const Footer = () => {
   const socialLinks = [

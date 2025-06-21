@@ -1,86 +1,145 @@
-import { useState } from 'react'
-import HorseLogo from './HorseLogo.jsx'
+import { useState, useEffect } from 'react'
+import { menuAPI, pesananAPI, detailPesananAPI } from '../services/api.js'
 
 const KantinDashboard = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState('orders')
-  const [menuItems, setMenuItems] = useState([
-    {
-      id: 1,
-      name: 'Nasi Gudeg',
-      price: 15000,
-      available: true,
-      stock: 20,
-      sold: 5
-    },
-    {
-      id: 2,
-      name: 'Ayam Geprek',
-      price: 12000,
-      available: true,
-      stock: 15,
-      sold: 8
-    },
-    {
-      id: 3,
-      name: 'Gado-gado',
-      price: 10000,
-      available: true,
-      stock: 10,
-      sold: 3
-    },
-    {
-      id: 4,
-      name: 'Bakso',
-      price: 8000,
-      available: false,
-      stock: 0,
-      sold: 12
-    }
-  ])
+  const [menuItems, setMenuItems] = useState([])
+  const [orders, setOrders] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [newMenuItem, setNewMenuItem] = useState({
+    nama_menu: '',
+    harga: '',
+    tipe_menu: 'makanan'
+  })
 
-  const [orders, setOrders] = useState([
-    {
-      id: 1,
-      customerName: 'Ahmad Rizki',
-      nim: '21/483920/TK/53201',
-      items: ['Nasi Gudeg', 'Es Teh Manis'],
-      total: 25000,
-      status: 'pending',
-      time: '14:30',
-      date: '2025-06-20'
-    },
-    {
-      id: 2,
-      customerName: 'Sari Dewi',
-      nim: '21/483921/TK/53202',
-      items: ['Ayam Geprek', 'Es Jeruk'],
-      total: 20000,
-      status: 'preparing',
-      time: '14:25',
-      date: '2025-06-20'
-    },
-    {
-      id: 3,
-      customerName: 'Budi Santoso',
-      nim: '21/483922/TK/53203',
-      items: ['Gado-gado'],
-      total: 10000,
-      status: 'ready',
-      time: '14:20',
-      date: '2025-06-20'
+  // Fetch data dari API
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!user.id) return
+      
+      try {
+        setLoading(true)
+        
+        // Fetch menu items untuk kantin ini
+        const menus = await menuAPI.getByKantin(user.id)
+        const menuData = menus.map(menu => ({
+          id: menu.id_menu,
+          name: menu.nama_menu,
+          price: parseInt(menu.harga),
+          available: true, // API tidak menyediakan field available, default true
+          stock: 50, // Mock data untuk stock
+          sold: Math.floor(Math.random() * 20), // Mock data untuk sold
+          type: menu.tipe_menu,
+          originalData: menu
+        }))
+        
+        setMenuItems(menuData)
+        
+        // Fetch pesanan untuk kantin ini
+        const kantinOrders = await pesananAPI.getByKantin(user.id)
+        const ordersWithDetails = await Promise.all(
+          kantinOrders.map(async (order) => {
+            const details = await pesananAPI.getWithDetails(order.id_pesanan)
+            
+            return {
+              id: order.id_pesanan,
+              customerName: details.mahasiswa?.nama || 'Unknown',
+              nim: details.mahasiswa?.nim || 'Unknown',
+              items: details.detail_pesanan?.map(d => {
+                const menu = menus.find(m => m.id_menu === d.id_menu)
+                return menu ? `${menu.nama_menu} (${d.jumlah}x)` : 'Unknown Item'
+              }) || [],
+              total: details.detail_pesanan?.reduce((sum, d) => sum + parseInt(d.harga_total), 0) || 0,
+              status: order.status === 'proses' ? 'pending' : 'completed',
+              time: new Date(order.tanggal).toLocaleTimeString('id-ID', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              }),
+              date: new Date(order.tanggal).toLocaleDateString('id-ID'),
+              originalData: order
+            }
+          })
+        )
+        
+        setOrders(ordersWithDetails)
+        
+      } catch (error) {
+        console.error('Error fetching data:', error)
+      } finally {
+        setLoading(false)
+      }
     }
-  ])
 
-  const updateOrderStatus = (orderId, newStatus) => {
-    setOrders(orders.map(order => 
-      order.id === orderId ? { ...order, status: newStatus } : order
-    ))
+    fetchData()
+  }, [user.id])
+
+  const updateOrderStatus = async (orderId, newStatus) => {
+    try {
+      const apiStatus = newStatus === 'completed' ? 'selesai' : 'proses'
+      await pesananAPI.updateStatus(orderId, apiStatus)
+      
+      setOrders(orders.map(order => 
+        order.id === orderId ? { ...order, status: newStatus } : order
+      ))
+    } catch (error) {
+      console.error('Error updating order status:', error)
+      alert('Gagal mengupdate status pesanan')
+    }
   }
 
   const toggleMenuAvailability = (itemId) => {
     setMenuItems(menuItems.map(item => 
       item.id === itemId ? { ...item, available: !item.available } : item
     ))
+  }
+
+  const handleAddMenuItem = async () => {
+    if (!newMenuItem.nama_menu || !newMenuItem.harga) {
+      alert('Nama menu dan harga harus diisi')
+      return
+    }
+
+    try {
+      const menuData = {
+        ...newMenuItem,
+        id_kantin: user.id,
+        harga: parseInt(newMenuItem.harga)
+      }
+      
+      const createdMenu = await menuAPI.create(menuData)
+      
+      const newMenu = {
+        id: createdMenu.id_menu,
+        name: createdMenu.nama_menu,
+        price: parseInt(createdMenu.harga),
+        available: true,
+        stock: 50,
+        sold: 0,
+        type: createdMenu.tipe_menu,
+        originalData: createdMenu
+      }
+      
+      setMenuItems([...menuItems, newMenu])
+      setNewMenuItem({ nama_menu: '', harga: '', tipe_menu: 'makanan' })
+      alert('Menu berhasil ditambahkan!')
+      
+    } catch (error) {
+      console.error('Error adding menu:', error)
+      alert('Gagal menambahkan menu')
+    }
+  }
+
+  const handleDeleteMenuItem = async (itemId) => {
+    if (!confirm('Yakin ingin menghapus menu ini?')) return
+
+    try {
+      await menuAPI.delete(itemId)
+      setMenuItems(menuItems.filter(item => item.id !== itemId))
+      alert('Menu berhasil dihapus!')
+    } catch (error) {
+      console.error('Error deleting menu:', error)
+      alert('Gagal menghapus menu')
+    }
   }
 
   const getStatusColor = (status) => {
@@ -122,7 +181,6 @@ const KantinDashboard = ({ user, onLogout }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-3">
-              <HorseLogo />
               <div>
                 <h1 className="text-xl font-bold text-gray-900 dark:text-white">
                   Dashboard Kantin
@@ -230,6 +288,18 @@ const KantinDashboard = ({ user, onLogout }) => {
                 </li>
                 <li>
                   <button
+                    onClick={() => setActiveTab('add-menu')}
+                    className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
+                      activeTab === 'add-menu'
+                        ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    ➕ Tambah Menu
+                  </button>
+                </li>
+                <li>
+                  <button
                     onClick={() => setActiveTab('analytics')}
                     className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
                       activeTab === 'analytics'
@@ -317,7 +387,10 @@ const KantinDashboard = ({ user, onLogout }) => {
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Kelola Menu</h2>
-                  <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                  <button 
+                    onClick={() => setActiveTab('add-menu')}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  >
                     + Tambah Menu
                   </button>
                 </div>
@@ -350,10 +423,79 @@ const KantinDashboard = ({ user, onLogout }) => {
                           <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
                             Edit
                           </button>
+                          <button
+                            onClick={() => handleDeleteMenuItem(item.id)}
+                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                          >
+                            Hapus
+                          </button>
                         </div>
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'add-menu' && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+                <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Tambah Menu Baru</h2>
+                <div className="max-w-md">
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Nama Menu
+                    </label>
+                    <input
+                      type="text"
+                      value={newMenuItem.nama_menu}
+                      onChange={(e) => setNewMenuItem({...newMenuItem, nama_menu: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      placeholder="Masukkan nama menu"
+                    />
+                  </div>
+                  
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Harga
+                    </label>
+                    <input
+                      type="number"
+                      value={newMenuItem.harga}
+                      onChange={(e) => setNewMenuItem({...newMenuItem, harga: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      placeholder="Masukkan harga"
+                    />
+                  </div>
+                  
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Tipe Menu
+                    </label>
+                    <select
+                      value={newMenuItem.tipe_menu}
+                      onChange={(e) => setNewMenuItem({...newMenuItem, tipe_menu: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    >
+                      <option value="makanan">Makanan</option>
+                      <option value="minuman">Minuman</option>
+                      <option value="snack">Snack</option>
+                    </select>
+                  </div>
+                  
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={handleAddMenuItem}
+                      className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                      Tambah Menu
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('menu')}
+                      className="px-6 py-2 border border-gray-300 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      Batal
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

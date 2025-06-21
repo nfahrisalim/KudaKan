@@ -9,17 +9,35 @@ import Footer from './components/Footer.jsx'
 import LoginModal from './components/LoginModal.jsx'
 import MahasiswaDashboard from './components/MahasiswaDashboard.jsx'
 import KantinDashboard from './components/KantinDashboard.jsx'
+import ProfileCompleteModal from './components/ProfileCompleteModal.jsx'
+import Toast from './components/Toast.jsx'
+import { useToast } from './hooks/useToast.jsx'
 
 function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
   const [currentUser, setCurrentUser] = useState(null)
+  const [showProfileComplete, setShowProfileComplete] = useState(false)
+  const { toast, showToast, hideToast } = useToast()
 
   const handleLoginSuccess = (user) => {
     setCurrentUser(user)
+    
+    // Check if profile is complete
+    if (!user.isProfileComplete) {
+      setShowProfileComplete(true)
+    }
   }
 
   const handleLogout = () => {
     setCurrentUser(null)
+    setShowProfileComplete(false)
+  }
+
+  const handleProfileComplete = () => {
+    setShowProfileComplete(false)
+    if (currentUser) {
+      setCurrentUser({...currentUser, isProfileComplete: true})
+    }
   }
 
   // Show dashboard if user is logged in
@@ -55,6 +73,19 @@ function App() {
           isOpen={isLoginModalOpen} 
           onClose={() => setIsLoginModalOpen(false)}
           onLoginSuccess={handleLoginSuccess}
+        />
+        {showProfileComplete && currentUser && (
+          <ProfileCompleteModal
+            user={currentUser}
+            onComplete={handleProfileComplete}
+            onClose={() => setShowProfileComplete(false)}
+          />
+        )}
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          isVisible={toast.isVisible}
+          onClose={hideToast}
         />
       </div>
     </ThemeProvider>
