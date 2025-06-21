@@ -43,7 +43,7 @@ const Footer = () => {
           <div>
             <div className="flex items-center space-x-3 mb-4">
               <img
-                src="https://raw.githubusercontent.com/Adrian29-gpu/Assets/main/logo.png"
+                src="https://raw.githubusercontent.com/Adrian29-gpu/Assets/main/logo_fix.png"
                 alt="Kudakan Logo"
                 className="w-8 h-8 object-contain"
               />

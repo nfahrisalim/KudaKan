@@ -25,7 +25,7 @@ const Navbar = ({ onLoginClick }) => {
             onClick={() => scrollToSection('home')}
           >
             <img
-              src="https://raw.githubusercontent.com/Adrian29-gpu/Assets/main/logo.png"
+              src="https://raw.githubusercontent.com/Adrian29-gpu/Assets/main/logo_fix.png"
               alt="Kudakan Logo"
               className="w-8 h-8 object-contain"
             />
