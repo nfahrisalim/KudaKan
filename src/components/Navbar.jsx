@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useTheme } from './ThemeProvider.jsx'
 
-const Navbar = ({ onLoginClick, currentUser }) => {
+const Navbar = ({ onLoginClick, currentUser, onGoDashboard, onLogout, onGoProfile }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false)
   const { theme, toggleTheme } = useTheme()
 
   const scrollToSection = (sectionId) => {
@@ -75,14 +76,65 @@ const Navbar = ({ onLoginClick, currentUser }) => {
               )}
             </button>
 
-            {/* Login/Dashboard Button */}
+            {/* Login/Profile Dropdown */}
             {currentUser ? (
-              <button 
-                onClick={() => window.location.reload()} 
-                className="btn-primary"
-              >
-                Dashboard
-              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                  className="flex items-center space-x-2 p-2 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors"
+                >
+                  <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                    <span className="text-red-600 font-bold">
+                      {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
+                    </span>
+                  </div>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                
+                {isProfileDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
+                    <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {currentUser.name || currentUser.email}
+                      </p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {currentUser.type === 'mahasiswa' ? 'Mahasiswa' : 'Kantin'}
+                      </p>
+                    </div>
+                    <div className="py-1">
+                      <button
+                        onClick={() => {
+                          onGoDashboard()
+                          setIsProfileDropdownOpen(false)
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        Dashboard
+                      </button>
+                      <button
+                        onClick={() => {
+                          onGoProfile()
+                          setIsProfileDropdownOpen(false)
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        Profil
+                      </button>
+                      <button
+                        onClick={() => {
+                          onLogout()
+                          setIsProfileDropdownOpen(false)
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      >
+                        Keluar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             ) : (
               <button onClick={onLoginClick} className="btn-primary">
                 Masuk
@@ -152,15 +204,38 @@ const Navbar = ({ onLoginClick, currentUser }) => {
                 </button>
               ))}
               {currentUser ? (
-                <button
-                  onClick={() => {
-                    window.location.reload()
-                    setIsMobileMenuOpen(false)
-                  }}
-                  className="btn-primary w-fit"
-                >
-                  Dashboard
-                </button>
+                <div className="flex flex-col space-y-2">
+                  <div className="text-sm font-medium text-gray-900 dark:text-white">
+                    {currentUser.name || currentUser.email}
+                  </div>
+                  <button
+                    onClick={() => {
+                      onGoDashboard()
+                      setIsMobileMenuOpen(false)
+                    }}
+                    className="btn-primary w-fit"
+                  >
+                    Dashboard
+                  </button>
+                  <button
+                    onClick={() => {
+                      onGoProfile()
+                      setIsMobileMenuOpen(false)
+                    }}
+                    className="text-left py-2 px-4 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors w-fit"
+                  >
+                    Profil
+                  </button>
+                  <button
+                    onClick={() => {
+                      onLogout()
+                      setIsMobileMenuOpen(false)
+                    }}
+                    className="text-left py-2 px-4 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors w-fit"
+                  >
+                    Keluar
+                  </button>
+                </div>
               ) : (
                 <button
                   onClick={() => {
