@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useTheme } from './ThemeProvider.jsx'
 
 const Navbar = ({ onLoginClick }) => {
-  const [isMobileMenuOpen, setIsMobileMenuMenuOpen] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const { theme, toggleTheme } = useTheme()
 
   const scrollToSection = (sectionId) => {
@@ -10,12 +10,12 @@ const Navbar = ({ onLoginClick }) => {
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
-    setIsMobileMenuMenuOpen(false)
+    setIsMobileMenuOpen(false)
   }
 
   return (
-    <nav className={`fixed top-0 w-full z-50 shadow-sm backdrop-blur-md transition-colors duration-300 ${
-      theme === 'light' ? 'bg-white/95' : 'bg-neutral-900/90'
+    <nav className={`fixed top-0 w-full z-50 shadow-sm transition-colors duration-300 ${
+      theme === 'light' ? 'bg-white' : 'bg-neutral-900'
     }`}>
       <div className="container mx-auto px-4 sm:px-6 py-4">
         <div className="flex justify-between items-center">
@@ -105,7 +105,7 @@ const Navbar = ({ onLoginClick }) => {
               )}
             </button>
             <button
-              onClick={() => setIsMobileMenuMenuOpen(!isMobileMenuOpen)}
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className={`${
                 theme === 'light' ? 'text-stone-800' : 'text-gray-200'
               }`}
@@ -125,7 +125,9 @@ const Navbar = ({ onLoginClick }) => {
 
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden mt-4 pb-4 fade-in">
+          <div className={`md:hidden mt-4 pb-4 rounded-lg p-4 ${
+            theme === 'light' ? 'bg-gray-100' : 'bg-neutral-800'
+          }`}>
             <div className="flex flex-col space-y-4">
               {['home', 'about', 'menu', 'delivery'].map((section) => (
                 <button
@@ -143,7 +145,7 @@ const Navbar = ({ onLoginClick }) => {
               <button
                 onClick={() => {
                   onLoginClick()
-                  setIsMobileMenuMenuOpen(false)
+                  setIsMobileMenuOpen(false)
                 }}
                 className="btn-primary w-fit"
               >
