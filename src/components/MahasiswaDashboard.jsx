@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
+import HorseLogo from './HorseLogo.jsx'
 import { menuAPI, pesananAPI, detailPesananAPI, kantinAPI } from '../services/api.js'
 
-const MahasiswaDashboard = ({ user, onLogout }) => {
+const MahasiswaDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
   const [activeTab, setActiveTab] = useState('menu')
   const [cart, setCart] = useState([])
   const [orders, setOrders] = useState([])
@@ -189,13 +190,22 @@ const MahasiswaDashboard = ({ user, onLogout }) => {
             </div>
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => window.location.href = '/'}
+                onClick={onGoHome}
                 className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
                 Beranda
+              </button>
+              <button
+                onClick={onGoProfile}
+                className="px-4 py-2 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                Profil
               </button>
               <button
                 onClick={onLogout}
