@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
   const [activeRole, setActiveRole] = useState('mahasiswa')
+  const [isRegisterMode, setIsRegisterMode] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -22,6 +23,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
           year: '2021'
         }
         onLoginSuccess(mockUser)
+        setIsRegisterMode(false)
         onClose()
       }
     } else if (activeRole === 'kantin') {
@@ -35,23 +37,29 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
           location: 'Gedung Pusat'
         }
         onLoginSuccess(mockUser)
+        setIsRegisterMode(false)
         onClose()
       }
     }
   }
 
   const handleInputChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    })
+    const { name, value } = e.target
+    setFormData((prev) => ({ ...prev, [name]: value }))
   }
+
+  // const handleInputChange = (e) => {
+  //   setFormData({
+  //     ...formData,
+  //     [e.target.name]: e.target.value
+  //   })
+  // }
 
   if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 bg-kudakan-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-card rounded-xl max-w-md w-full p-6 relative">
+      <div className="bg-white/90 dark:bg-neutral-900/80 backdrop-blur-md rounded-xl max-w-md w-full p-6 relative shadow-xl">
         <button 
           onClick={onClose}
           className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
@@ -62,7 +70,9 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
           </svg>
         </button>
         
-        <h2 className="text-2xl font-bold mb-6 text-center text-card-foreground">Masuk ke Kudakan</h2>
+        <h2 className="text-2xl font-bold mb-6 text-center text-card-foreground">
+          {isRegisterMode ? 'Daftar Akun Kudakan' : 'Masuk ke Kudakan'}
+        </h2>
         
         {/* Role Selection */}
         <div className="flex space-x-4 mb-6">
@@ -127,11 +137,35 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
             type="submit" 
             className="w-full py-3 bg-kudakan-red text-kudakan-white rounded-lg hover:bg-red-700 transition-colors font-medium"
           >
-            Masuk sebagai {activeRole === 'mahasiswa' ? 'Mahasiswa' : 'Kantin'}
+            {isRegisterMode
+              ? `Daftar sebagai ${activeRole === 'mahasiswa' ? 'Mahasiswa' : 'Kantin'}`
+              : `Masuk sebagai ${activeRole === 'mahasiswa' ? 'Mahasiswa' : 'Kantin'}`}
           </button>
           
           <p className="text-center text-sm text-muted-foreground mt-4">
-            Belum punya akun? <a href="#" className="text-kudakan-red hover:underline">Daftar sekarang</a>
+            {isRegisterMode ? (
+              <>
+                Sudah punya akun?{' '}
+                <button
+                  type="button"
+                  onClick={() => setIsRegisterMode(false)}
+                  className="text-kudakan-red hover:underline"
+                >
+                  Masuk sekarang
+                </button>
+              </>
+            ) : (
+              <>
+                Belum punya akun?{' '}
+                <button
+                  type="button"
+                  onClick={() => setIsRegisterMode(true)}
+                  className="text-kudakan-red hover:underline"
+                >
+                  Daftar sekarang
+                </button>
+              </>
+            )}
           </p>
         </form>
       </div>
