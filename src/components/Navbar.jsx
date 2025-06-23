@@ -85,7 +85,8 @@ const Navbar = ({ onLoginClick, currentUser, onGoDashboard, onLogout, onGoProfil
                 >
                   <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
                     <span className="text-red-600 font-bold">
-                      {currentUser.name ? currentUser.name.charAt(0).toUpperCase() : 'U'}
+                      {(currentUser.name || currentUser.kantinName) ? 
+                        (currentUser.name || currentUser.kantinName).charAt(0).toUpperCase() : 'U'}
                     </span>
                   </div>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -97,7 +98,7 @@ const Navbar = ({ onLoginClick, currentUser, onGoDashboard, onLogout, onGoProfil
                   <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50">
                     <div className="p-3 border-b border-gray-200 dark:border-gray-700">
                       <p className="font-medium text-gray-900 dark:text-white">
-                        {currentUser.name || currentUser.email}
+                        {currentUser.name || currentUser.kantinName || currentUser.email}
                       </p>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
                         {currentUser.type === 'mahasiswa' ? 'Mahasiswa' : 'Kantin'}

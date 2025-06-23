@@ -27,10 +27,29 @@ function App() {
   useEffect(() => {
     const checkExistingAuth = async () => {
       const token = localStorage.getItem('token')
-      if (token) {
+      const storedUser = localStorage.getItem('currentUser')
+      
+      if (token && storedUser) {
         try {
+          // Try to verify token is still valid
           const userInfo = await authAPI.getCurrentUser()
-          setCurrentUser(userInfo)
+          
+          // Use stored user data if API call successful
+          const processedUser = JSON.parse(storedUser)
+          
+          // Update with fresh data if needed
+          if (userInfo.mahasiswa && userInfo.mahasiswa.id_mahasiswa) {
+            processedUser.alamatPengiriman = userInfo.mahasiswa.alamat_pengiriman
+            processedUser.nomorHp = userInfo.mahasiswa.nomor_hp
+            processedUser.isProfileComplete = !!(userInfo.mahasiswa.alamat_pengiriman && userInfo.mahasiswa.nomor_hp)
+          } else if (userInfo.kantin && userInfo.kantin.id_kantin) {
+            processedUser.deskripsi = userInfo.kantin.deskripsi
+            processedUser.lokasi = userInfo.kantin.lokasi
+            processedUser.isProfileComplete = !!(userInfo.kantin.deskripsi && userInfo.kantin.lokasi)
+          }
+          
+          setCurrentUser(processedUser)
+          
           // Check if we were in dashboard before
           const lastView = localStorage.getItem('lastView')
           if (lastView === 'dashboard') {
@@ -40,6 +59,7 @@ function App() {
           console.error('Auth check failed:', error)
           localStorage.removeItem('token')
           localStorage.removeItem('lastView')
+          localStorage.removeItem('currentUser')
         }
       }
       setLoading(false)
@@ -49,9 +69,11 @@ function App() {
   }, [])
 
   const handleLoginSuccess = (user) => {
+    console.log('Login success handler called with user:', user)
     setCurrentUser(user)
     setCurrentView('dashboard')
     localStorage.setItem('lastView', 'dashboard')
+    localStorage.setItem('currentUser', JSON.stringify(user))
     
     // Check if profile is complete
     if (!user.isProfileComplete) {
@@ -66,6 +88,7 @@ function App() {
       setShowProfileComplete(false)
       setCurrentView('home')
       localStorage.removeItem('lastView')
+      localStorage.removeItem('currentUser')
     }
   }
 

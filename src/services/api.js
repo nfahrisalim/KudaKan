@@ -2,9 +2,22 @@
 const API_BASE_URL = 'https://kudakan-backend.vercel.app/api/v1'
 
 // Storage untuk token
-const getToken = () => localStorage.getItem('token')
-const setToken = (token) => localStorage.setItem('token', token)
-const removeToken = () => localStorage.removeItem('token')
+const getToken = () => {
+  const token = localStorage.getItem('token')
+  console.log('Current token:', token ? 'exists' : 'null')
+  return token
+}
+
+const setToken = (token) => {
+  console.log('Setting token:', token ? 'token set' : 'null token')
+  localStorage.setItem('token', token)
+}
+
+const removeToken = () => {
+  console.log('Removing token')
+  localStorage.removeItem('token')
+  localStorage.removeItem('lastView')
+}
 
 // Helper untuk membuat request dengan auth
 const makeRequest = async (url, options = {}) => {
@@ -18,12 +31,19 @@ const makeRequest = async (url, options = {}) => {
     headers.Authorization = `Bearer ${token}`
   }
   
+  console.log('Making request to:', url, 'with token:', token ? 'yes' : 'no')
+  
   const response = await fetch(`${API_BASE_URL}${url}`, {
     ...options,
     headers
   })
   
   if (!response.ok) {
+    if (response.status === 401) {
+      console.log('Token expired, removing from storage')
+      removeToken()
+      throw new Error('Token expired')
+    }
     throw new Error(`HTTP error! status: ${response.status}`)
   }
   
@@ -118,30 +138,65 @@ export const menuAPI = {
 
   createWithImage: async (data, imageFile) => {
     const token = getToken()
+    
+    if (!token) {
+      console.log('No token found for createWithImage')
+      throw new Error('Token tidak ditemukan. Silakan login ulang.')
+    }
+    
+    console.log('Creating menu with image, token exists:', !!token)
+    console.log('Token value (first 20 chars):', token.substring(0, 20) + '...')
+    console.log('Menu data:', data)
+    
     const formData = new FormData()
     
-    formData.append('id_kantin', data.id_kantin)
+    formData.append('id_kantin', data.id_kantin.toString())
     formData.append('nama_menu', data.nama_menu)
-    formData.append('harga', data.harga)
+    formData.append('harga', data.harga.toString())
     formData.append('tipe_menu', data.tipe_menu)
     
     if (imageFile) {
       formData.append('image', imageFile)
+      console.log('Image file added to form data:', imageFile.name, imageFile.size)
     }
     
-    const response = await fetch(`${API_BASE_URL}/menu/with-image`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`
-      },
-      body: formData
-    })
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+    // Log form data contents
+    for (let [key, value] of formData.entries()) {
+      console.log('FormData:', key, typeof value === 'object' ? 'File object' : value)
     }
     
-    return response.json()
+    try {
+      const response = await fetch(`${API_BASE_URL}/menu/with-image`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      })
+      
+      console.log('Response status:', response.status)
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()))
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          console.log('401 error - token expired or invalid')
+          const errorText = await response.text()
+          console.log('401 Error details:', errorText)
+          removeToken()
+          throw new Error('Token expired')
+        }
+        const errorText = await response.text()
+        console.log('Error response:', errorText)
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`)
+      }
+      
+      const result = await response.json()
+      console.log('Menu created successfully:', result)
+      return result
+    } catch (error) {
+      console.error('Error in createWithImage:', error)
+      throw error
+    }
   },
   
   update: (id, data) => makeRequest(`/menu/${id}`, {
