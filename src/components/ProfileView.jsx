@@ -54,31 +54,38 @@ const ProfileView = ({ user, onBack, onLogout }) => {
 
   const handleSaveProfile = async () => {
     try {
-      let updateData = {}
+      setLoading(true)
+      showToast('Menyimpan perubahan profil...', 'info')
       
       if (user.type === 'mahasiswa') {
-        updateData = {
+        const updateData = {
           alamat_pengiriman: formData.alamat_pengiriman || formData.alamatPengiriman,
           nomor_hp: formData.nomor_hp || formData.nomorHp
         }
         await mahasiswaAPI.completeProfile(updateData.alamat_pengiriman, updateData.nomor_hp)
       } else if (user.type === 'kantin') {
-        updateData = {
-          nama_kantin: formData.nama_kantin || formData.namaKantin,
-          lokasi: formData.lokasi,
-          jam_buka: formData.jam_buka || formData.jamBuka,
-          jam_tutup: formData.jam_tutup || formData.jamTutup,
-          nomor_hp: formData.nomor_hp || formData.nomorHp
+        // Format data sesuai dengan API schema KantinProfileUpdate
+        const updateData = {
+          nama_tenant: formData.nama_tenant || formData.namaTenant,
+          nama_pemilik: formData.nama_pemilik || formData.namaPemilik,
+          nomor_pemilik: formData.nomor_pemilik || formData.nomorPemilik,
+          jam_operasional: formData.jam_operasional || formData.jamOperasional
         }
-        await kantinAPI.completeProfile(updateData)
+        
+        console.log('Sending kantin profile update:', updateData)
+        await kantinAPI.updateProfile(updateData)
       }
 
       showToast('Profil berhasil diperbarui', 'success')
       setIsEditing(false)
-      fetchProfileData()
+      setTimeout(() => {
+        fetchProfileData()
+      }, 500)
     } catch (error) {
       console.error('Error updating profile:', error)
-      showToast('Gagal memperbarui profil', 'error')
+      showToast('Gagal memperbarui profil. Periksa data yang dimasukkan.', 'error')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -94,7 +101,12 @@ const ProfileView = ({ user, onBack, onLogout }) => {
     }
 
     try {
+      setLoading(true)
+      showToast('Mengubah password...', 'info')
+      
+      // Format sesuai dengan ChangePasswordRequest schema
       await authAPI.changePassword(passwordData.currentPassword, passwordData.newPassword)
+      
       showToast('Password berhasil diubah', 'success')
       setShowPasswordForm(false)
       setPasswordData({
@@ -104,7 +116,13 @@ const ProfileView = ({ user, onBack, onLogout }) => {
       })
     } catch (error) {
       console.error('Error changing password:', error)
-      showToast('Gagal mengubah password', 'error')
+      if (error.message.includes('401')) {
+        showToast('Password lama tidak benar', 'error')
+      } else {
+        showToast('Gagal mengubah password. Silakan coba lagi.', 'error')
+      }
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -235,13 +253,14 @@ const ProfileView = ({ user, onBack, onLogout }) => {
                   </label>
                   <textarea
                     name="alamat_pengiriman"
-                    value={formData.alamat_pengiriman || formData.alamatPengiriman || ''}
+                    value={formData.alamat_pengiriman || ''}
                     onChange={handleInputChange}
                     disabled={!isEditing}
                     className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white ${
                       isEditing ? 'bg-white dark:bg-gray-800' : 'bg-gray-100 dark:bg-gray-700'
                     } dark:border-gray-600`}
                     rows="3"
+                    placeholder={!formData.alamat_pengiriman && !isEditing ? "Belum diisi" : ""}
                   />
                 </div>
                 <div>
@@ -251,12 +270,13 @@ const ProfileView = ({ user, onBack, onLogout }) => {
                   <input
                     type="text"
                     name="nomor_hp"
-                    value={formData.nomor_hp || formData.nomorHp || ''}
+                    value={formData.nomor_hp || ''}
                     onChange={handleInputChange}
                     disabled={!isEditing}
                     className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white ${
                       isEditing ? 'bg-white dark:bg-gray-800' : 'bg-gray-100 dark:bg-gray-700'
                     } dark:border-gray-600`}
+                    placeholder={!formData.nomor_hp && !isEditing ? "Belum diisi" : ""}
                   />
                 </div>
               </>
@@ -268,73 +288,73 @@ const ProfileView = ({ user, onBack, onLogout }) => {
                   </label>
                   <input
                     type="text"
-                    name="nama_kantin"
-                    value={formData.nama_kantin || formData.namaKantin || ''}
-                    onChange={handleInputChange}
-                    disabled={!isEditing}
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white ${
-                      isEditing ? 'bg-white dark:bg-gray-800' : 'bg-gray-100 dark:bg-gray-700'
-                    } dark:border-gray-600`}
+                    value={profileData.nama_kantin || ''}
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 dark:bg-gray-700 dark:border-gray-600 text-gray-900 dark:text-white"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Lokasi
+                    Nama Tenant
                   </label>
                   <input
                     type="text"
-                    name="lokasi"
-                    value={formData.lokasi || ''}
+                    name="nama_tenant"
+                    value={formData.nama_tenant || ''}
                     onChange={handleInputChange}
                     disabled={!isEditing}
                     className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white ${
                       isEditing ? 'bg-white dark:bg-gray-800' : 'bg-gray-100 dark:bg-gray-700'
                     } dark:border-gray-600`}
+                    placeholder={!formData.nama_tenant && !isEditing ? "Belum diisi" : "Masukkan nama tenant"}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Jam Buka
-                  </label>
-                  <input
-                    type="time"
-                    name="jam_buka"
-                    value={formData.jam_buka || formData.jamBuka || ''}
-                    onChange={handleInputChange}
-                    disabled={!isEditing}
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white ${
-                      isEditing ? 'bg-white dark:bg-gray-800' : 'bg-gray-100 dark:bg-gray-700'
-                    } dark:border-gray-600`}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Jam Tutup
-                  </label>
-                  <input
-                    type="time"
-                    name="jam_tutup"
-                    value={formData.jam_tutup || formData.jamTutup || ''}
-                    onChange={handleInputChange}
-                    disabled={!isEditing}
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white ${
-                      isEditing ? 'bg-white dark:bg-gray-800' : 'bg-gray-100 dark:bg-gray-700'
-                    } dark:border-gray-600`}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Nomor HP
+                    Nama Pemilik
                   </label>
                   <input
                     type="text"
-                    name="nomor_hp"
-                    value={formData.nomor_hp || formData.nomorHp || ''}
+                    name="nama_pemilik"
+                    value={formData.nama_pemilik || ''}
                     onChange={handleInputChange}
                     disabled={!isEditing}
                     className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white ${
                       isEditing ? 'bg-white dark:bg-gray-800' : 'bg-gray-100 dark:bg-gray-700'
                     } dark:border-gray-600`}
+                    placeholder={!formData.nama_pemilik && !isEditing ? "Belum diisi" : "Masukkan nama pemilik"}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Nomor Pemilik
+                  </label>
+                  <input
+                    type="text"
+                    name="nomor_pemilik"
+                    value={formData.nomor_pemilik || ''}
+                    onChange={handleInputChange}
+                    disabled={!isEditing}
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white ${
+                      isEditing ? 'bg-white dark:bg-gray-800' : 'bg-gray-100 dark:bg-gray-700'
+                    } dark:border-gray-600`}
+                    placeholder={!formData.nomor_pemilik && !isEditing ? "Belum diisi" : "Masukkan nomor telepon pemilik"}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Jam Operasional
+                  </label>
+                  <input
+                    type="text"
+                    name="jam_operasional"
+                    value={formData.jam_operasional || ''}
+                    onChange={handleInputChange}
+                    disabled={!isEditing}
+                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900 dark:text-white ${
+                      isEditing ? 'bg-white dark:bg-gray-800' : 'bg-gray-100 dark:bg-gray-700'
+                    } dark:border-gray-600`}
+                    placeholder={!formData.jam_operasional && !isEditing ? "Belum diisi" : "Contoh: 08:00 - 17:00"}
                   />
                 </div>
               </>
@@ -345,16 +365,21 @@ const ProfileView = ({ user, onBack, onLogout }) => {
             <div className="mt-6 flex space-x-4">
               <button
                 onClick={handleSaveProfile}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                disabled={loading}
+                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                Simpan Perubahan
+                {loading && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                )}
+                {loading ? 'Menyimpan...' : 'Simpan Perubahan'}
               </button>
               <button
                 onClick={() => {
                   setIsEditing(false)
                   setFormData(profileData)
                 }}
-                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                disabled={loading}
+                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Batal
               </button>
@@ -414,9 +439,13 @@ const ProfileView = ({ user, onBack, onLogout }) => {
               </div>
               <button
                 onClick={handleChangePassword}
-                className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                disabled={loading}
+                className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                Ubah Password
+                {loading && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                )}
+                {loading ? 'Mengubah...' : 'Ubah Password'}
               </button>
             </div>
           )}

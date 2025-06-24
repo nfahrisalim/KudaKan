@@ -46,7 +46,15 @@ const makeRequest = async (url, options = {}) => {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
 
-  return response.json();
+  // Check if response has content before parsing JSON
+  const contentType = response.headers.get('content-type');
+  if (contentType && contentType.includes('application/json')) {
+    const text = await response.text();
+    return text ? JSON.parse(text) : {};
+  }
+  
+  // For DELETE requests or responses without content, return empty object
+  return {};
 };
 
 // Auth API
@@ -120,6 +128,12 @@ export const kantinAPI = {
   getWithMenus: (id) => makeRequest(`/kantin/${id}/with-menus`),
 
   completeProfile: (data) =>
+    makeRequest("/kantin/complete-profile", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  updateProfile: (data) =>
     makeRequest("/kantin/complete-profile", {
       method: "PUT",
       body: JSON.stringify(data),

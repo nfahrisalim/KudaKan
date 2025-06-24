@@ -1,81 +1,88 @@
 import { useState, useEffect } from 'react'
-import { menuAPI, pesananAPI, detailPesananAPI, kantinAPI } from '../services/api.js'
+import { pesananAPI, menuAPI, kantinAPI, authAPI, mahasiswaAPI } from '../services/api.js'
+import Toast from './Toast.jsx'
+import ProfileCompleteModal from './ProfileCompleteModal.jsx'
+import { useToast } from '../hooks/useToast.jsx'
 
 const MahasiswaDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
-  const [activeTab, setActiveTab] = useState('menu')
-  const [cart, setCart] = useState([])
-  const [orders, setOrders] = useState([])
-  const [menuItems, setMenuItems] = useState([])
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedType, setSelectedType] = useState('all')
   const [kantinList, setKantinList] = useState([])
+  const [selectedKantin, setSelectedKantin] = useState(null)
+  const [menuItems, setMenuItems] = useState([])
+  const [cart, setCart] = useState([])
+  const [showCart, setShowCart] = useState(false)
+  const [orders, setOrders] = useState([])
+  const [activeView, setActiveView] = useState('explore') // 'explore' or 'orders'
   const [loading, setLoading] = useState(true)
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [currentPesanan, setCurrentPesanan] = useState(null)
+  const [showProfileModal, setShowProfileModal] = useState(false)
+  const [profileComplete, setProfileComplete] = useState(false)
+  const { toast, showToast, hideToast } = useToast()
 
-  // Fetch data dari API
+  // Check profile status on mount
   useEffect(() => {
-    const fetchData = async () => {
+    const checkProfileStatus = async () => {
+      try {
+        const userInfo = await authAPI.getCurrentUser()
+        const isComplete = userInfo.is_profile_complete || false
+        setProfileComplete(isComplete)
+        if (!isComplete) {
+          setShowProfileModal(true)
+        }
+      } catch (error) {
+        console.error('Error checking profile status:', error)
+      }
+    }
+
+    if (user.id) {
+      checkProfileStatus()
+    }
+  }, [user.id])
+
+  useEffect(() => {
+    const fetchInitialData = async () => {
       try {
         setLoading(true)
 
-        // Fetch menu items
-        const menus = await menuAPI.getAll()
-
-        // Fetch kantin list untuk mapping nama kantin
+        // Fetch kantins
         const kantins = await kantinAPI.getAll()
-
-        // Map menu dengan info kantin
-        const menuWithKantin = menus.map(menu => {
-          const kantin = kantins.find(k => k.id_kantin === menu.id_kantin)
-          return {
-            id: menu.id_menu,
-            name: menu.nama_menu,
-            price: parseInt(menu.harga),
-            canteen: kantin ? kantin.nama_kantin : 'Unknown',
-            image: getMenuEmoji(menu.tipe_menu),
-            available: true,
-            type: menu.tipe_menu,
-            kantinId: menu.id_kantin,
-            originalData: menu
-          }
-        })
-
-        setMenuItems(menuWithKantin)
         setKantinList(kantins)
 
-        // Fetch pesanan mahasiswa
+        // Fetch orders jika user ada
         if (user.id) {
           const userOrders = await pesananAPI.getByMahasiswa(user.id)
           const ordersWithDetails = await Promise.all(
             userOrders.map(async (order) => {
               const details = await pesananAPI.getWithDetails(order.id_pesanan)
-              const kantin = kantins.find(k => k.id_kantin === order.id_kantin)
-
               return {
                 id: order.id_pesanan,
+                kantinName: details.kantin?.nama_kantin || 'Unknown Kantin',
                 items: details.detail_pesanan?.map(d => {
-                  const menu = menus.find(m => m.id_menu === d.id_menu)
-                  return menu ? `${menu.nama_menu} (${d.jumlah}x)` : 'Unknown Item'
+                  return d.menu ? `${d.menu.nama_menu} (${d.jumlah}x)` : 'Unknown Item'
                 }) || [],
                 total: details.detail_pesanan?.reduce((sum, d) => sum + parseInt(d.harga_total), 0) || 0,
-                status: order.status === 'proses' ? 'Sedang Diproses' : 'Selesai',
+                status: order.status === 'proses' ? 'processing' : 'completed',
+                time: new Date(order.tanggal).toLocaleTimeString('id-ID', { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                }),
                 date: new Date(order.tanggal).toLocaleDateString('id-ID'),
-                canteen: kantin ? kantin.nama_kantin : 'Unknown',
                 originalData: order
               }
             })
           )
-
           setOrders(ordersWithDetails)
         }
-
       } catch (error) {
         console.error('Error fetching data:', error)
+        showToast('Gagal memuat data', 'error')
       } finally {
         setLoading(false)
       }
     }
 
-    fetchData()
+    fetchInitialData()
   }, [user.id])
 
   // Helper function untuk emoji menu
@@ -255,7 +262,7 @@ const MahasiswaDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
               <div className="px-6 py-4 bg-gradient-to-r from-red-500 to-red-600 text-white">
                 <h3 className="text-lg font-semibold">Navigasi Menu Kudakan</h3>
               </div>
-              
+
               {/* Navigation Items */}
               <div className="p-4">
                 <ul className="space-y-3">
@@ -294,7 +301,7 @@ const MahasiswaDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
                       )}
                     </button>
                   </li>
-                  
+
                   <li>
                     <button
                       onClick={() => setActiveTab('cart')}
@@ -353,7 +360,7 @@ const MahasiswaDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
                       )}
                     </button>
                   </li>
-                  
+
                   <li>
                     <button
                       onClick={() => setActiveTab('orders')}
@@ -507,6 +514,25 @@ const MahasiswaDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
           </div>
         </div>
       </div>
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={hideToast}
+      />
+
+      {/* Profile Complete Modal */}
+      {showProfileModal && (
+        <ProfileCompleteModal
+          user={user}
+          onComplete={() => {
+            setShowProfileModal(false)
+            setProfileComplete(true)
+            showToast('Profil berhasil dilengkapi!', 'success')
+          }}
+          onClose={() => setShowProfileModal(false)}
+        />
+      )}
     </div>
   )
 };
@@ -518,18 +544,18 @@ const LogoutModal = ({ isOpen, onClose, onConfirm }) => {
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm transition-opacity duration-300"></div>
-      
+
       {/* Modal */}
       <div className="flex min-h-full items-center justify-center p-4 text-center">
         <div className="relative transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 px-8 pb-6 pt-8 text-left shadow-2xl transition-all duration-300 w-full max-w-md border border-gray-200 dark:border-gray-700">
-          
+
           {/* Icon */}
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 mb-6">
             <svg className="h-8 w-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
           </div>
-          
+
           {/* Content */}
           <div className="text-center">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
@@ -539,7 +565,7 @@ const LogoutModal = ({ isOpen, onClose, onConfirm }) => {
               Apakah Anda yakin ingin keluar dari dashboard?
             </p>
           </div>
-          
+
           {/* Actions */}
           <div className="flex space-x-3">
             <button

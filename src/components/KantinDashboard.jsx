@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { menuAPI, pesananAPI, detailPesananAPI, authAPI } from '../services/api.js'
+import { menuAPI, pesananAPI, detailPesananAPI, authAPI, kantinAPI } from '../services/api.js'
 import Toast from './Toast.jsx'
+import ProfileCompleteModal from './ProfileCompleteModal.jsx'
 import { useToast } from '../hooks/useToast.jsx'
 
 // Helper function untuk emoji menu
@@ -19,15 +20,38 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false)
+  const [profileComplete, setProfileComplete] = useState(false)
   const [newMenuItem, setNewMenuItem] = useState({
     nama_menu: '',
     harga: '',
     tipe_menu: 'makanan'
   })
+  const [editingItem, setEditingItem] = useState(null)
   const [selectedImage, setSelectedImage] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [isUploading, setIsUploading] = useState(false)
   const { toast, showToast, hideToast } = useToast()
+
+  // Check profile status on mount
+  useEffect(() => {
+    const checkProfileStatus = async () => {
+      try {
+        const userInfo = await authAPI.getCurrentUser()
+        const isComplete = userInfo.is_profile_complete || false
+        setProfileComplete(isComplete)
+        if (!isComplete) {
+          setShowProfileModal(true)
+        }
+      } catch (error) {
+        console.error('Error checking profile status:', error)
+      }
+    }
+
+    if (user.id) {
+      checkProfileStatus()
+    }
+  }, [user.id])
 
   // Fetch data dari API
   useEffect(() => {
@@ -112,108 +136,107 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
 
   const handleAddMenuItem = async () => {
     if (!newMenuItem.nama_menu || !newMenuItem.harga) {
-      showToast('Nama menu dan harga harus diisi', 'warning')
+      showToast('Nama menu dan harga harus diisi', 'error')
       return
     }
 
-    // Check if user is logged in and has valid ID
-    console.log('Current user:', user)
-    console.log('User ID:', user?.id)
-    console.log('User type:', user?.type)
-    console.log('User object keys:', Object.keys(user || {}))
-    console.log('Full user object:', JSON.stringify(user, null, 2))
-    
-    if (!user) {
-      console.error('User object is null or undefined')
-      showToast('Sesi login tidak ditemukan. Silakan login ulang.', 'error')
-      onLogout({ skipConfirm: true })
+    if (!user.id) {
+      console.error('User ID is missing when trying to add menu item')
+      showToast('ID pengguna tidak valid. Silakan logout dan login ulang.', 'error')
       return
     }
-    
-    if (user.type !== 'kantin') {
-      console.error('User type is not kantin:', user.type)
-      showToast('Akun ini bukan akun kantin. Silakan login dengan akun kantin.', 'error')
-      onLogout({ skipConfirm: true })
-      return
-    }
-    
-    if (!user.id && user.id !== 0) {
-      console.error('User ID is missing or invalid:', user?.id)
-      console.error('This might be caused by API response not containing proper ID field')
-      
-      // Try to get current user info from API to debug
-      authAPI.getCurrentUser()
-        .then(userInfo => {
-          console.log('Fresh user info from API:', userInfo)
-          if (userInfo.kantin) {
-            console.log('Kantin info from fresh API call:', userInfo.kantin)
-          }
-        })
-        .catch(err => console.error('Failed to get fresh user info:', err))
-      
-      showToast('ID pengguna tidak valid. Data login mungkin tidak lengkap. Silakan logout dan login ulang.', 'error')
-      onLogout({ skipConfirm: true })
-      return
-    }
+
+    setIsUploading(true)
+    showToast(editingItem ? 'Memperbarui menu...' : 'Mengunggah menu...', 'info')
 
     try {
-      setIsUploading(true)
-      
+      console.log(editingItem ? 'Updating menu item:' : 'Adding menu item for user ID:', user.id)
+
       const menuData = {
-        id_kantin: parseInt(user.id), // Ensure ID is integer
-        nama_menu: newMenuItem.nama_menu,
-        harga: parseInt(newMenuItem.harga),
-        tipe_menu: newMenuItem.tipe_menu
+        ...newMenuItem,
+        id_kantin: user.id,
+        harga: parseInt(newMenuItem.harga)
       }
-      
-      console.log('Menu data to be sent:', menuData)
 
-      if (selectedImage) {
-        showToast('Mengupload gambar menu...', 'info')
+      let response
+      if (editingItem) {
+        // Update existing menu
+        response = await menuAPI.update(editingItem.id, menuData)
       } else {
-        showToast('Menambahkan menu...', 'info')
+        // Create new menu
+        if (selectedImage) {
+          console.log('Creating menu with image')
+          showToast('Mengunggah gambar menu...', 'info')
+          response = await menuAPI.createWithImage(menuData, selectedImage)
+        } else {
+          console.log('Creating menu without image')
+          response = await menuAPI.create(menuData)
+        }
       }
 
-      let createdMenu
-      if (selectedImage) {
-        createdMenu = await menuAPI.createWithImage(menuData, selectedImage)
-      } else {
-        createdMenu = await menuAPI.create(menuData)
-      }
+      console.log('Menu operation successful:', response)
 
-      const newMenu = {
-        id: createdMenu.id_menu,
-        name: createdMenu.nama_menu,
-        price: parseInt(createdMenu.harga),
-        available: true,
-        stock: 50,
-        sold: 0,
-        type: createdMenu.tipe_menu,
-        image: createdMenu.img_menu || getMenuEmoji(createdMenu.tipe_menu),
-        originalData: createdMenu
-      }
-
-      setMenuItems([...menuItems, newMenu])
-      setNewMenuItem({ nama_menu: '', harga: '', tipe_menu: 'makanan' })
+      // Reset form
+      setNewMenuItem({
+        nama_menu: '',
+        harga: '',
+        tipe_menu: 'makanan'
+      })
+      setEditingItem(null)
       setSelectedImage(null)
       setImagePreview(null)
-      showToast('Menu berhasil ditambahkan!', 'success')
 
+      showToast('Memperbarui daftar menu...', 'info')
+
+      // Refresh menu list
+      const updatedMenus = await menuAPI.getByKantin(user.id)
+      const menuData2 = updatedMenus.map(menu => ({
+        id: menu.id_menu,
+        name: menu.nama_menu,
+        price: parseInt(menu.harga),
+        available: true,
+        stock: 50,
+        sold: Math.floor(Math.random() * 20),
+        type: menu.tipe_menu,
+        originalData: menu
+      }))
+
+      setMenuItems(menuData2)
+      showToast(editingItem ? 'Menu berhasil diperbarui!' : 'Menu berhasil ditambahkan!', 'success')
     } catch (error) {
-      console.error('Error adding menu:', error)
-      
-      // Handle specific error types
-      if (error.message.includes('Token expired') || error.message.includes('401')) {
-        showToast('Sesi login telah berakhir. Silakan login ulang.', 'error')
-        onLogout()
-      } else if (error.message.includes('422')) {
-        showToast('Data tidak valid. Periksa kembali input Anda.', 'error')
+      console.error('Error with menu operation:', error)
+      if (error.message.includes('Token expired')) {
+        showToast('Sesi login expired. Silakan login ulang.', 'error')
+        onLogout({ skipConfirm: true })
+      } else if (error.message.includes('Gagal terhubung')) {
+        showToast('Koneksi bermasalah. Periksa internet Anda.', 'error')
       } else {
-        showToast('Gagal menambahkan menu: ' + error.message, 'error')
+        showToast(`Gagal ${editingItem ? 'memperbarui' : 'menambahkan'} menu. Silakan coba lagi.`, 'error')
       }
     } finally {
       setIsUploading(false)
     }
+  }
+
+  const handleEditMenuItem = (item) => {
+    setEditingItem(item)
+    setNewMenuItem({
+      nama_menu: item.name,
+      harga: item.price.toString(),
+      tipe_menu: item.type
+    })
+    setActiveTab('add-menu')
+  }
+
+  const cancelEdit = () => {
+    setEditingItem(null)
+    setNewMenuItem({
+      nama_menu: '',
+      harga: '',
+      tipe_menu: 'makanan'
+    })
+    setSelectedImage(null)
+    setImagePreview(null)
   }
 
   const handleImageChange = (e) => {
@@ -232,8 +255,11 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
     if (!confirm('Yakin ingin menghapus menu ini?')) return
 
     try {
+      showToast('Menghapus menu...', 'info')
       await menuAPI.delete(itemId)
-      setMenuItems(menuItems.filter(item => item.id !== itemId))
+      
+      // Update state immediately after successful deletion
+      setMenuItems(prevItems => prevItems.filter(item => item.id !== itemId))
       showToast('Menu berhasil dihapus!', 'success')
     } catch (error) {
       console.error('Error deleting menu:', error)
@@ -338,7 +364,7 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
                 onClick={() => setShowLogoutModal(true)}
                 className="group relative px-6 py-2.5 text-sm font-medium text-white rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2 overflow-hidden"
               >
-                
+
                 <div className="absolute inset-0 bg-gradient-to-r from-red-400 to-red-500 opacity-0 group-hover:opacity-20 transition-opacity duration-200"></div>
                 <div className="relative w-4 h-4 flex items-center justify-center">
                   <svg className="w-4 h-4 transform group-hover:translate-x-0.5 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -419,7 +445,7 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
               <div className="px-6 py-4 bg-gradient-to-r from-red-500 to-red-600 text-white">
                 <h3 className="text-lg font-semibold">Kelola Kantin Anda</h3>
               </div>
-              
+
               {/* Navigation Items */}
               <div className="p-4">
                 <ul className="space-y-3">
@@ -458,7 +484,7 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
                       )}
                     </button>
                   </li>
-                  
+
                   <li>
                     <button
                       onClick={() => setActiveTab('menu')}
@@ -494,7 +520,7 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
                       )}
                     </button>
                   </li>
-                  
+
                   <li>
                     <button
                       onClick={() => setActiveTab('add-menu')}
@@ -530,7 +556,7 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
                       )}
                     </button>
                   </li>
-                  
+
                   <li>
                     <button
                       onClick={() => setActiveTab('analytics')}
@@ -677,7 +703,10 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
                           >
                             {item.available ? 'Nonaktifkan' : 'Aktifkan'}
                           </button>
-                          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                          <button
+                            onClick={() => handleEditMenuItem(item)}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                          >
                             Edit
                           </button>
                           <button
@@ -696,7 +725,9 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
 
             {activeTab === 'add-menu' && (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Tambah Menu Baru</h2>
+                <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">
+                  {editingItem ? 'Edit Menu' : 'Tambah Menu Baru'}
+                </h2>
                 <div className="max-w-md">
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -773,14 +804,12 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
                       {isUploading && (
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                       )}
-                      {isUploading ? 'Menambahkan...' : 'Tambah Menu'}
+                      {isUploading ? (editingItem ? 'Memperbarui...' : 'Menambahkan...') : (editingItem ? 'Perbarui Menu' : 'Tambah Menu')}
                     </button>
                     <button
                       onClick={() => {
                         setActiveTab('menu')
-                        setSelectedImage(null)
-                        setImagePreview(null)
-                        setNewMenuItem({ nama_menu: '', harga: '', tipe_menu: 'makanan' })
+                        cancelEdit()
                       }}
                       disabled={isUploading}
                       className={`px-6 py-2 border border-gray-300 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
@@ -842,13 +871,26 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
           </div>
         </div>
       </div>
-      
+
       <Toast
         message={toast.message}
         type={toast.type}
         isVisible={toast.isVisible}
         onClose={hideToast}
       />
+
+      {/* Profile Complete Modal */}
+      {showProfileModal && (
+        <ProfileCompleteModal
+          user={user}
+          onComplete={() => {
+            setShowProfileModal(false)
+            setProfileComplete(true)
+            showToast('Profil berhasil dilengkapi!', 'success')
+          }}
+          onClose={() => setShowProfileModal(false)}
+        />
+      )}
     </div>
   )
 };
@@ -861,18 +903,18 @@ const LogoutModal = ({ isOpen, onClose, onConfirm }) => {
     <div className="fixed inset-0 z-50 overflow-y-auto">
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm transition-opacity duration-300"></div>
-      
+
       {/* Modal */}
       <div className="flex min-h-full items-center justify-center p-4 text-center">
         <div className="relative transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 px-8 pb-6 pt-8 text-left shadow-2xl transition-all duration-300 w-full max-w-md border border-gray-200 dark:border-gray-700">
-          
+
           {/* Icon */}
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 mb-6">
             <svg className="h-8 w-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
           </div>
-          
+
           {/* Content */}
           <div className="text-center">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
@@ -882,7 +924,7 @@ const LogoutModal = ({ isOpen, onClose, onConfirm }) => {
               Apakah Anda yakin ingin keluar dari dashboard?
             </p>
           </div>
-          
+
           {/* Actions */}
           <div className="flex space-x-3">
             <button

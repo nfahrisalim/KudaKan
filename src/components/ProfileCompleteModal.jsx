@@ -1,4 +1,3 @@
-
 import { useState } from 'react'
 import { mahasiswaAPI, kantinAPI } from '../services/api.js'
 
@@ -28,7 +27,7 @@ const ProfileCompleteModal = ({ user, onComplete, onClose }) => {
           jam_operasional: formData.jam_operasional
         })
       }
-      
+
       onComplete()
     } catch (error) {
       console.error('Error completing profile:', error)
@@ -64,7 +63,7 @@ const ProfileCompleteModal = ({ user, onComplete, onClose }) => {
                   placeholder="Masukkan alamat lengkap"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Nomor HP
@@ -96,7 +95,7 @@ const ProfileCompleteModal = ({ user, onComplete, onClose }) => {
                   placeholder="Nama tenant kantin"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Nama Pemilik
@@ -110,7 +109,7 @@ const ProfileCompleteModal = ({ user, onComplete, onClose }) => {
                   placeholder="Nama pemilik kantin"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Nomor Pemilik
@@ -124,7 +123,7 @@ const ProfileCompleteModal = ({ user, onComplete, onClose }) => {
                   placeholder="08xxxxxxxxxx"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Jam Operasional
