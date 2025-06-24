@@ -8,6 +8,7 @@ const ProfileView = ({ user, onBack, onLogout }) => {
   const [profileData, setProfileData] = useState({})
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [formData, setFormData] = useState({})
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -115,6 +116,11 @@ const ProfileView = ({ user, onBack, onLogout }) => {
     )
   }
 
+  const handleLogout = () => {
+    setShowLogoutModal(false);
+    onLogout();
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
@@ -131,23 +137,43 @@ const ProfileView = ({ user, onBack, onLogout }) => {
                 Profil {user.type === 'mahasiswa' ? 'Mahasiswa' : 'Kantin'}
               </h1>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
               <button
                 onClick={onBack}
-                className="px-4 py-2 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                className="group relative px-6 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 rounded-xl bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-500 transform hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2 border border-gray-300 dark:border-gray-600 overflow-hidden"
               >
-                Kembali ke Dashboard
+                <div className="absolute inset-0 bg-gradient-to-r from-gray-300 to-gray-400 dark:from-gray-500 dark:to-gray-400 opacity-0 group-hover:opacity-20 transition-opacity duration-200 rounded-xl"></div>
+                <div className="relative w-4 h-4 flex items-center justify-center">
+                  <svg className="w-4 h-4 transform group-hover:-translate-x-0.5 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                </div>
+                <span className="relative z-10 font-medium">Kembali ke Dashboard</span>
+                <div className="absolute -left-2 -top-2 w-16 h-16 bg-blue-400 opacity-10 rounded-full transform scale-0 group-hover:scale-100 transition-transform duration-300"></div>
               </button>
               <button
-                onClick={onLogout}
-                className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                onClick={() => setShowLogoutModal(true)}
+                className="group relative px-6 py-2.5 text-sm font-medium text-white rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2 overflow-hidden"
               >
-                Keluar
+                <div className="absolute inset-0 bg-gradient-to-r from-red-400 to-red-500 opacity-0 group-hover:opacity-20 transition-opacity duration-200"></div>
+                <span className="relative z-10 font-medium">Keluar</span>
+                <div className="relative w-4 h-4 flex items-center justify-center">
+                  <svg className="w-4 h-4 transform group-hover:translate-x-0.5 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                </div>
+                <div className="absolute -right-2 -top-2 w-16 h-16 bg-white opacity-10 rounded-full transform scale-0 group-hover:scale-100 transition-transform duration-300"></div>
               </button>
             </div>
           </div>
         </div>
       </header>
+      
+      <LogoutModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={handleLogout}
+      />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
@@ -405,6 +431,56 @@ const ProfileView = ({ user, onBack, onLogout }) => {
       />
     </div>
   )
-}
+};
+
+const LogoutModal = ({ isOpen, onClose, onConfirm }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      {/* Backdrop */}
+      <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm transition-opacity duration-300"></div>
+      
+      {/* Modal */}
+      <div className="flex min-h-full items-center justify-center p-4 text-center">
+        <div className="relative transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 px-8 pb-6 pt-8 text-left shadow-2xl transition-all duration-300 w-full max-w-md border border-gray-200 dark:border-gray-700">
+          
+          {/* Icon */}
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 mb-6">
+            <svg className="h-8 w-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          </div>
+          
+          {/* Content */}
+          <div className="text-center">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              Konfirmasi Keluar
+            </h3>
+            <p className="text-gray-500 dark:text-gray-400 mb-8">
+              Apakah Anda yakin ingin logout dari akun Anda?
+            </p>
+          </div>
+          
+          {/* Actions */}
+          <div className="flex space-x-3">
+            <button
+              onClick={onClose}
+              className="flex-1 px-6 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition-all duration-200 border border-gray-300 dark:border-gray-600"
+            >
+              Batal
+            </button>
+            <button
+              onClick={onConfirm}
+              className="flex-1 px-6 py-3 text-sm font-medium text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              Ya, Keluar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default ProfileView
