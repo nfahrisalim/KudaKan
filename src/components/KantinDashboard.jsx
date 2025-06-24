@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
-import { menuAPI, pesananAPI, detailPesananAPI } from '../services/api.js'
+import { menuAPI, pesananAPI, detailPesananAPI, authAPI } from '../services/api.js'
+import Toast from './Toast.jsx'
+import { useToast } from '../hooks/useToast.jsx'
 
 // Helper function untuk emoji menu
 const getMenuEmoji = (type) => {
@@ -24,6 +26,8 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
   })
   const [selectedImage, setSelectedImage] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const { toast, showToast, hideToast } = useToast()
 
   // Fetch data dari API
   useEffect(() => {
@@ -108,21 +112,53 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
 
   const handleAddMenuItem = async () => {
     if (!newMenuItem.nama_menu || !newMenuItem.harga) {
-      alert('Nama menu dan harga harus diisi')
+      showToast('Nama menu dan harga harus diisi', 'warning')
       return
     }
 
     // Check if user is logged in and has valid ID
     console.log('Current user:', user)
     console.log('User ID:', user?.id)
+    console.log('User type:', user?.type)
+    console.log('User object keys:', Object.keys(user || {}))
+    console.log('Full user object:', JSON.stringify(user, null, 2))
     
-    if (!user || !user.id) {
-      alert('Sesi login telah berakhir. Silakan login ulang.')
-      onLogout()
+    if (!user) {
+      console.error('User object is null or undefined')
+      showToast('Sesi login tidak ditemukan. Silakan login ulang.', 'error')
+      onLogout({ skipConfirm: true })
+      return
+    }
+    
+    if (user.type !== 'kantin') {
+      console.error('User type is not kantin:', user.type)
+      showToast('Akun ini bukan akun kantin. Silakan login dengan akun kantin.', 'error')
+      onLogout({ skipConfirm: true })
+      return
+    }
+    
+    if (!user.id && user.id !== 0) {
+      console.error('User ID is missing or invalid:', user?.id)
+      console.error('This might be caused by API response not containing proper ID field')
+      
+      // Try to get current user info from API to debug
+      authAPI.getCurrentUser()
+        .then(userInfo => {
+          console.log('Fresh user info from API:', userInfo)
+          if (userInfo.kantin) {
+            console.log('Kantin info from fresh API call:', userInfo.kantin)
+          }
+        })
+        .catch(err => console.error('Failed to get fresh user info:', err))
+      
+      showToast('ID pengguna tidak valid. Data login mungkin tidak lengkap. Silakan logout dan login ulang.', 'error')
+      onLogout({ skipConfirm: true })
       return
     }
 
     try {
+      setIsUploading(true)
+      
       const menuData = {
         id_kantin: parseInt(user.id), // Ensure ID is integer
         nama_menu: newMenuItem.nama_menu,
@@ -131,6 +167,12 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
       }
       
       console.log('Menu data to be sent:', menuData)
+
+      if (selectedImage) {
+        showToast('Mengupload gambar menu...', 'info')
+      } else {
+        showToast('Menambahkan menu...', 'info')
+      }
 
       let createdMenu
       if (selectedImage) {
@@ -155,20 +197,22 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
       setNewMenuItem({ nama_menu: '', harga: '', tipe_menu: 'makanan' })
       setSelectedImage(null)
       setImagePreview(null)
-      alert('Menu berhasil ditambahkan!')
+      showToast('Menu berhasil ditambahkan!', 'success')
 
     } catch (error) {
       console.error('Error adding menu:', error)
       
       // Handle specific error types
       if (error.message.includes('Token expired') || error.message.includes('401')) {
-        alert('Sesi login telah berakhir. Silakan login ulang.')
+        showToast('Sesi login telah berakhir. Silakan login ulang.', 'error')
         onLogout()
       } else if (error.message.includes('422')) {
-        alert('Data tidak valid. Periksa kembali input Anda.')
+        showToast('Data tidak valid. Periksa kembali input Anda.', 'error')
       } else {
-        alert('Gagal menambahkan menu: ' + error.message)
+        showToast('Gagal menambahkan menu: ' + error.message, 'error')
       }
+    } finally {
+      setIsUploading(false)
     }
   }
 
@@ -190,10 +234,10 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
     try {
       await menuAPI.delete(itemId)
       setMenuItems(menuItems.filter(item => item.id !== itemId))
-      alert('Menu berhasil dihapus!')
+      showToast('Menu berhasil dihapus!', 'success')
     } catch (error) {
       console.error('Error deleting menu:', error)
-      alert('Gagal menghapus menu')
+      showToast('Gagal menghapus menu', 'error')
     }
   }
 
@@ -721,9 +765,15 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
                   <div className="flex space-x-3">
                     <button
                       onClick={handleAddMenuItem}
-                      className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                      disabled={isUploading}
+                      className={`px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 ${
+                        isUploading ? 'opacity-75 cursor-not-allowed' : ''
+                      }`}
                     >
-                      Tambah Menu
+                      {isUploading && (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      )}
+                      {isUploading ? 'Menambahkan...' : 'Tambah Menu'}
                     </button>
                     <button
                       onClick={() => {
@@ -732,7 +782,10 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
                         setImagePreview(null)
                         setNewMenuItem({ nama_menu: '', harga: '', tipe_menu: 'makanan' })
                       }}
-                      className="px-6 py-2 border border-gray-300 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      disabled={isUploading}
+                      className={`px-6 py-2 border border-gray-300 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+                        isUploading ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
                     >
                       Batal
                     </button>
@@ -789,6 +842,13 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
           </div>
         </div>
       </div>
+      
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={hideToast}
+      />
     </div>
   )
 };

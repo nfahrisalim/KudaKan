@@ -56,6 +56,8 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
         if (response.access_token) {
           const userInfo = response.user_info
           console.log('User info from login:', userInfo)
+          console.log('Full response structure:', response)
+          console.log('User type:', response.user_type)
 
           let processedUser = null
 
@@ -71,9 +73,18 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
               isProfileComplete: !!(userInfo.alamat_pengiriman && userInfo.nomor_hp)
             }
           } else if (response.user_type === 'kantin') {
+            // Debug semua kemungkinan field ID
+            console.log('All userInfo keys:', Object.keys(userInfo))
+            console.log('userInfo.id_kantin:', userInfo.id_kantin)
+            console.log('userInfo.id:', userInfo.id)
+            console.log('userInfo.kantin_id:', userInfo.kantin_id)
+            
+            // Try multiple possible field names for kantin ID
+            const kantinId = userInfo.id_kantin || userInfo.id || userInfo.kantin_id
+            
             processedUser = {
               type: 'kantin',
-              id: userInfo.id_kantin,
+              id: kantinId,
               kantinName: userInfo.nama_kantin,
               email: userInfo.email,
               namaTenant: userInfo.nama_tenant,
@@ -82,6 +93,11 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
               jamOperasional: userInfo.jam_operasional,
               isProfileComplete: !!(userInfo.nama_tenant && userInfo.nama_pemilik && userInfo.nomor_pemilik && userInfo.jam_operasional)
             }
+            
+            // Debug log untuk memastikan ID terisi dengan benar
+            console.log('Kantin ID from API:', userInfo.id_kantin)
+            console.log('Alternative ID fields:', { id: userInfo.id, kantin_id: userInfo.kantin_id })
+            console.log('Final processed user ID:', processedUser.id)
           }
 
           console.log('Processed user:', processedUser)

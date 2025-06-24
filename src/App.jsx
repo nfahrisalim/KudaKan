@@ -43,12 +43,23 @@ function App() {
             processedUser.nomorHp = userInfo.mahasiswa.nomor_hp
             processedUser.isProfileComplete = !!(userInfo.mahasiswa.alamat_pengiriman && userInfo.mahasiswa.nomor_hp)
           } else if (userInfo.kantin && userInfo.kantin.id_kantin) {
-            processedUser.deskripsi = userInfo.kantin.deskripsi
-            processedUser.lokasi = userInfo.kantin.lokasi
-            processedUser.isProfileComplete = !!(userInfo.kantin.deskripsi && userInfo.kantin.lokasi)
+            // Update kantin ID if it was missing from stored data
+            if (!processedUser.id) {
+              processedUser.id = userInfo.kantin.id_kantin
+            }
+            processedUser.namaTenant = userInfo.kantin.nama_tenant
+            processedUser.namaPemilik = userInfo.kantin.nama_pemilik
+            processedUser.nomorPemilik = userInfo.kantin.nomor_pemilik
+            processedUser.jamOperasional = userInfo.kantin.jam_operasional
+            processedUser.isProfileComplete = !!(userInfo.kantin.nama_tenant && userInfo.kantin.nama_pemilik && userInfo.kantin.nomor_pemilik && userInfo.kantin.jam_operasional)
           }
+          
+          console.log('Updated processed user:', processedUser)
 
           setCurrentUser(processedUser)
+          
+          // Save updated user data back to localStorage
+          localStorage.setItem('currentUser', JSON.stringify(processedUser))
 
           // Check if we were in dashboard before
           const lastView = localStorage.getItem('lastView')
