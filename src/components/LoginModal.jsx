@@ -51,12 +51,16 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
       } else {
         // Login logic
         const response = await authAPI.login(formData.email, formData.password)
+        console.log('Login response:', response)
 
         if (response.access_token) {
           const userInfo = response.user_info
+          console.log('User info from login:', userInfo)
+
+          let processedUser = null
 
           if (response.user_type === 'mahasiswa') {
-            onLoginSuccess({
+            processedUser = {
               type: 'mahasiswa',
               id: userInfo.id_mahasiswa,
               name: userInfo.nama,
@@ -64,10 +68,10 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
               email: userInfo.email,
               alamatPengiriman: userInfo.alamat_pengiriman,
               nomorHp: userInfo.nomor_hp,
-              isProfileComplete: userInfo.is_profile_complete
-            })
+              isProfileComplete: !!(userInfo.alamat_pengiriman && userInfo.nomor_hp)
+            }
           } else if (response.user_type === 'kantin') {
-            onLoginSuccess({
+            processedUser = {
               type: 'kantin',
               id: userInfo.id_kantin,
               kantinName: userInfo.nama_kantin,
@@ -76,10 +80,16 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
               namaPemilik: userInfo.nama_pemilik,
               nomorPemilik: userInfo.nomor_pemilik,
               jamOperasional: userInfo.jam_operasional,
-              isProfileComplete: userInfo.is_profile_complete
-            })
+              isProfileComplete: !!(userInfo.nama_tenant && userInfo.nama_pemilik && userInfo.nomor_pemilik && userInfo.jam_operasional)
+            }
           }
 
+          console.log('Processed user:', processedUser)
+          
+          // Store user data in localStorage
+          localStorage.setItem('currentUser', JSON.stringify(processedUser))
+          
+          onLoginSuccess(processedUser)
           showToast(`Selamat datang, ${userInfo.nama || userInfo.nama_kantin}!`, 'success')
           onClose()
         }

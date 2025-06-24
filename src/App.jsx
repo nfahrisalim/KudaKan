@@ -28,15 +28,15 @@ function App() {
     const checkExistingAuth = async () => {
       const token = localStorage.getItem('token')
       const storedUser = localStorage.getItem('currentUser')
-      
+
       if (token && storedUser) {
         try {
           // Try to verify token is still valid
           const userInfo = await authAPI.getCurrentUser()
-          
+
           // Use stored user data if API call successful
           const processedUser = JSON.parse(storedUser)
-          
+
           // Update with fresh data if needed
           if (userInfo.mahasiswa && userInfo.mahasiswa.id_mahasiswa) {
             processedUser.alamatPengiriman = userInfo.mahasiswa.alamat_pengiriman
@@ -47,9 +47,9 @@ function App() {
             processedUser.lokasi = userInfo.kantin.lokasi
             processedUser.isProfileComplete = !!(userInfo.kantin.deskripsi && userInfo.kantin.lokasi)
           }
-          
+
           setCurrentUser(processedUser)
-          
+
           // Check if we were in dashboard before
           const lastView = localStorage.getItem('lastView')
           if (lastView === 'dashboard') {
@@ -68,28 +68,30 @@ function App() {
     checkExistingAuth()
   }, [])
 
-  const handleLoginSuccess = (user) => {
-    console.log('Login success handler called with user:', user)
-    setCurrentUser(user)
+  const handleLoginSuccess = (userData) => {
+    console.log('Login success - user data:', userData)
+    setCurrentUser(userData)
+    localStorage.setItem('currentUser', JSON.stringify(userData))
     setCurrentView('dashboard')
     localStorage.setItem('lastView', 'dashboard')
-    localStorage.setItem('currentUser', JSON.stringify(user))
-    
-    // Check if profile is complete
-    if (!user.isProfileComplete) {
+
+    // Show profile completion modal if needed
+    if (!userData.isProfileComplete) {
       setShowProfileComplete(true)
     }
   }
 
-  const handleLogout = () => {
-    if (confirm('Apakah Anda yakin ingin keluar?')) {
-      authAPI.logout()
-      setCurrentUser(null)
-      setShowProfileComplete(false)
-      setCurrentView('home')
-      localStorage.removeItem('lastView')
-      localStorage.removeItem('currentUser')
+  const handleLogout = (options = {}) => {
+    if (!options.skipConfirm && !confirm('Apakah Anda yakin ingin keluar?')) {
+      return
     }
+
+    authAPI.logout()
+    localStorage.removeItem('currentUser')
+    setCurrentUser(null)
+    setCurrentView('home')
+    localStorage.removeItem('lastView')
+    showToast('Berhasil keluar', 'success')
   }
 
   const handleProfileComplete = () => {
@@ -145,8 +147,8 @@ function App() {
           <KantinDashboard 
             user={currentUser} 
             onLogout={handleLogout}
-            onGoHome={handleGoHome}
-            onGoProfile={handleGoProfile}
+            onGoHome={() => setCurrentView('home')}
+            onGoProfile={() => setCurrentView('profile')}
           />
         </ThemeProvider>
       )

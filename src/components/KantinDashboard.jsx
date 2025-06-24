@@ -11,7 +11,7 @@ const getMenuEmoji = (type) => {
   }
 }
 
-const KantinDashboard = ({ user, onLogout, onGoProfile }) => {
+const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
   const [activeTab, setActiveTab] = useState('orders')
   const [menuItems, setMenuItems] = useState([])
   const [orders, setOrders] = useState([])
@@ -112,7 +112,10 @@ const KantinDashboard = ({ user, onLogout, onGoProfile }) => {
       return
     }
 
-    // Check if user is logged in
+    // Check if user is logged in and has valid ID
+    console.log('Current user:', user)
+    console.log('User ID:', user?.id)
+    
     if (!user || !user.id) {
       alert('Sesi login telah berakhir. Silakan login ulang.')
       onLogout()
@@ -121,11 +124,13 @@ const KantinDashboard = ({ user, onLogout, onGoProfile }) => {
 
     try {
       const menuData = {
-        id_kantin: user.id,
+        id_kantin: parseInt(user.id), // Ensure ID is integer
         nama_menu: newMenuItem.nama_menu,
         harga: parseInt(newMenuItem.harga),
         tipe_menu: newMenuItem.tipe_menu
       }
+      
+      console.log('Menu data to be sent:', menuData)
 
       let createdMenu
       if (selectedImage) {
@@ -255,7 +260,11 @@ const KantinDashboard = ({ user, onLogout, onGoProfile }) => {
               <button
                 onClick={() => {
                   localStorage.setItem('lastView', 'home')
-                  window.location.href = '/'
+                  if (onGoHome) {
+                    onGoHome()
+                  } else {
+                    window.location.href = '/'
+                  }
                 }}
                 className="group relative px-6 py-2.5 text-sm font-medium text-white rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2 overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-500 opacity-0 group-hover:opacity-20 transition-opacity duration-200"></div>
@@ -285,14 +294,6 @@ const KantinDashboard = ({ user, onLogout, onGoProfile }) => {
                 onClick={() => setShowLogoutModal(true)}
                 className="group relative px-6 py-2.5 text-sm font-medium text-white rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2 overflow-hidden"
               >
-              {/* <button
-                onClick={() => {
-                  if (confirm('Apakah Anda yakin ingin keluar?')) {
-                    onLogout()
-                  }
-                }}
-                className="group relative px-6 py-2.5 text-sm font-medium text-white rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2 overflow-hidden"
-                > */}
                 
                 <div className="absolute inset-0 bg-gradient-to-r from-red-400 to-red-500 opacity-0 group-hover:opacity-20 transition-opacity duration-200"></div>
                 <div className="relative w-4 h-4 flex items-center justify-center">

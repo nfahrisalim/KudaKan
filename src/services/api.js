@@ -60,6 +60,7 @@ export const authAPI = {
     
     if (response.access_token) {
       setToken(response.access_token)
+      console.log('Token saved after login:', response.access_token.substring(0, 20) + '...')
     }
     
     return response
@@ -144,15 +145,26 @@ export const menuAPI = {
       throw new Error('Token tidak ditemukan. Silakan login ulang.')
     }
     
+    // Validate required data
+    if (!data.id_kantin) {
+      console.error('Missing id_kantin in data:', data)
+      throw new Error('ID Kantin tidak valid. Silakan logout dan login ulang.')
+    }
+    
     console.log('Creating menu with image, token exists:', !!token)
-    console.log('Token value (first 20 chars):', token.substring(0, 20) + '...')
     console.log('Menu data:', data)
     
     const formData = new FormData()
     
-    formData.append('id_kantin', data.id_kantin.toString())
+    // Ensure id_kantin is properly converted to integer
+    const kantinId = parseInt(data.id_kantin)
+    if (isNaN(kantinId)) {
+      throw new Error('ID Kantin tidak valid.')
+    }
+    
+    formData.append('id_kantin', kantinId.toString())
     formData.append('nama_menu', data.nama_menu)
-    formData.append('harga', data.harga.toString())
+    formData.append('harga', parseInt(data.harga).toString())
     formData.append('tipe_menu', data.tipe_menu)
     
     if (imageFile) {
