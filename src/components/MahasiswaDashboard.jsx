@@ -8,6 +8,7 @@ const MahasiswaDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
   const [menuItems, setMenuItems] = useState([])
   const [kantinList, setKantinList] = useState([])
   const [loading, setLoading] = useState(true)
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [currentPesanan, setCurrentPesanan] = useState(null)
 
   // Fetch data dari API
@@ -166,6 +167,11 @@ const MahasiswaDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
     }
   }
 
+  const handleLogout = () => {
+    setShowLogoutModal(false);
+    onLogout({ skipConfirm: true });
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
@@ -190,76 +196,201 @@ const MahasiswaDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
             <div className="flex items-center space-x-4">
               <button
                 onClick={onGoHome}
-                className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                className="group relative px-6 py-2.5 text-sm font-medium text-white rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2 overflow-hidden"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-500 opacity-0 group-hover:opacity-20 transition-opacity duration-200"></div>
+                <svg className="w-4 h-4 transform group-hover:rotate-12 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
-                Beranda
+                <span className="relative z-10">Beranda</span>
+                <div className="absolute -left-2 -top-2 w-16 h-16 bg-white opacity-10 rounded-full transform scale-0 group-hover:scale-100 transition-transform duration-300"></div>
               </button>
               <button
                 onClick={onGoProfile}
-                className="px-4 py-2 text-sm bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+                className="group relative px-6 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 rounded-xl bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-500 transform hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2 border border-gray-300 dark:border-gray-600"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                Profil
+                <div className="absolute inset-0 bg-gradient-to-r from-gray-300 to-gray-400 dark:from-gray-500 dark:to-gray-400 opacity-0 group-hover:opacity-20 transition-opacity duration-200 rounded-xl"></div>
+                <div className="relative w-4 h-4 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center">
+                  <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                  </svg>
+                </div>
+                <span className="relative z-10 font-medium">Profil</span>
+                <div className="absolute -left-1 -top-1 w-14 h-11 bg-purple-400 opacity-10 rounded-full transform scale-0 group-hover:scale-100 transition-transform duration-300"></div>
               </button>
               <button
-                onClick={onLogout}
-                className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                onClick={() => setShowLogoutModal(true)}
+                className="group relative px-6 py-2.5 text-sm font-medium text-white rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2 overflow-hidden"
               >
-                Keluar
+              {/* <button
+                onClick={onLogout}
+                className="group relative px-6 py-2.5 text-sm font-medium text-white rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2 overflow-hidden"
+              > */}
+               <div className="absolute inset-0 bg-gradient-to-r from-red-400 to-red-500 opacity-0 group-hover:opacity-20 transition-opacity duration-200"></div>
+                <div className="relative w-4 h-4 flex items-center justify-center">
+                  <svg className="w-4 h-4 transform group-hover:translate-x-0.5 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                </div>
+                <span className="relative z-10 font-medium">Keluar</span>
+                <div className="absolute -left-2 -top-2 w-16 h-16 bg-white opacity-10 rounded-full transform scale-0 group-hover:scale-100 transition-transform duration-300"></div>
               </button>
             </div>
           </div>
         </div>
       </header>
 
+      <LogoutModal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={handleLogout}
+      />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar Navigation */}
           <div className="lg:w-64">
-            <nav className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
-              <ul className="space-y-2">
-                <li>
-                  <button
-                    onClick={() => setActiveTab('menu')}
-                    className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
-                      activeTab === 'menu'
-                        ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
-                  >
-                    📋 Menu Makanan
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => setActiveTab('cart')}
-                    className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
-                      activeTab === 'cart'
-                        ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
-                  >
-                    🛒 Keranjang ({cart.length})
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => setActiveTab('orders')}
-                    className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${
-                      activeTab === 'orders'
-                        ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
-                  >
-                    📦 Pesanan Saya
-                  </button>
-                </li>
-              </ul>
+            <nav className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
+              {/* Sidebar Header */}
+              <div className="px-6 py-4 bg-gradient-to-r from-red-500 to-red-600 text-white">
+                <h3 className="text-lg font-semibold">Navigasi Menu Kudakan</h3>
+              </div>
+              
+              {/* Navigation Items */}
+              <div className="p-4">
+                <ul className="space-y-3">
+                  <li>
+                    <button
+                      onClick={() => setActiveTab('menu')}
+                      className={`group w-full text-left px-4 py-3 rounded-xl transition-all duration-200 transform hover:scale-[1.02] relative ${
+                        activeTab === 'menu'
+                          ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/25'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-700 dark:hover:to-gray-600 hover:shadow-md'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${
+                          activeTab === 'menu' 
+                            ? 'bg-white/20 text-white' 
+                            : 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 group-hover:bg-orange-200 dark:group-hover:bg-orange-800/40'
+                        }`}>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2zM9 13H7a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2zM17 5h-2a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2zM17 13h-2a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <span className="font-medium">Menu Makanan</span>
+                          <p className={`text-xs mt-0.5 ${
+                            activeTab === 'menu' 
+                              ? 'text-white/80' 
+                              : 'text-gray-500 dark:text-gray-400'
+                          }`}>Lihat semua menu</p>
+                        </div>
+                      </div>
+                      {activeTab === 'menu' && (
+                        <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                          <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                        </div>
+                      )}
+                    </button>
+                  </li>
+                  
+                  <li>
+                    <button
+                      onClick={() => setActiveTab('cart')}
+                      className={`group w-full text-left px-4 py-3 rounded-xl transition-all duration-200 transform hover:scale-[1.02] relative ${
+                        activeTab === 'cart'
+                          ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/25'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-700 dark:hover:to-gray-600 hover:shadow-md'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 relative ${
+                          activeTab === 'cart' 
+                            ? 'bg-white/20 text-white' 
+                            : 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400 group-hover:bg-green-200 dark:group-hover:bg-green-800/40'
+                        }`}>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.35 2.15a1 1 0 001.41 1.41L7 13m0 0l2.83 2.83a1 1 0 001.41-1.41L7 13z" />
+                          </svg>
+                          {/* Cart Badge */}
+                          {cart.length > 0 && (
+                            <div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full text-xs flex items-center justify-center font-bold ${
+                              activeTab === 'cart'
+                                ? 'bg-white text-red-600'
+                                : 'bg-red-500 text-white'
+                            }`}>
+                              {cart.length > 9 ? '9+' : cart.length}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium">Keranjang</span>
+                            {cart.length > 0 && (
+                              <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${
+                                activeTab === 'cart'
+                                  ? 'bg-white/20 text-white'
+                                  : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+                              }`}>
+                                {cart.length}
+                              </span>
+                            )}
+                          </div>
+                          <p className={`text-xs mt-0.5 ${
+                            activeTab === 'cart' 
+                              ? 'text-white/80' 
+                              : 'text-gray-500 dark:text-gray-400'
+                          }`}>
+                            {cart.length === 0 ? 'Keranjang kosong' : `${cart.length} item di keranjang`}
+                          </p>
+                        </div>
+                      </div>
+                      {activeTab === 'cart' && (
+                        <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                          <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                        </div>
+                      )}
+                    </button>
+                  </li>
+                  
+                  <li>
+                    <button
+                      onClick={() => setActiveTab('orders')}
+                      className={`group w-full text-left px-4 py-3 rounded-xl transition-all duration-200 transform hover:scale-[1.02] relative ${
+                        activeTab === 'orders'
+                          ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/25'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-700 dark:hover:to-gray-600 hover:shadow-md'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${
+                          activeTab === 'orders' 
+                            ? 'bg-white/20 text-white' 
+                            : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/40'
+                        }`}>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                          </svg>
+                        </div>
+                        <div>
+                          <span className="font-medium">Pesanan Saya</span>
+                          <p className={`text-xs mt-0.5 ${
+                            activeTab === 'orders' 
+                              ? 'text-white/80' 
+                              : 'text-gray-500 dark:text-gray-400'
+                          }`}>Riwayat pesanan saya</p>
+                        </div>
+                      </div>
+                      {activeTab === 'orders' && (
+                        <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                          <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                        </div>
+                      )}
+                    </button>
+                  </li>
+                </ul>
+              </div>
             </nav>
           </div>
 
@@ -378,6 +509,56 @@ const MahasiswaDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
       </div>
     </div>
   )
-}
+};
+
+const LogoutModal = ({ isOpen, onClose, onConfirm }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto">
+      {/* Backdrop */}
+      <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm transition-opacity duration-300"></div>
+      
+      {/* Modal */}
+      <div className="flex min-h-full items-center justify-center p-4 text-center">
+        <div className="relative transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 px-8 pb-6 pt-8 text-left shadow-2xl transition-all duration-300 w-full max-w-md border border-gray-200 dark:border-gray-700">
+          
+          {/* Icon */}
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 mb-6">
+            <svg className="h-8 w-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          </div>
+          
+          {/* Content */}
+          <div className="text-center">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              Konfirmasi Keluar
+            </h3>
+            <p className="text-gray-500 dark:text-gray-400 mb-8">
+              Apakah Anda yakin ingin keluar dari dashboard?
+            </p>
+          </div>
+          
+          {/* Actions */}
+          <div className="flex space-x-3">
+            <button
+              onClick={onClose}
+              className="flex-1 px-6 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition-all duration-200 border border-gray-300 dark:border-gray-600"
+            >
+              Batal
+            </button>
+            <button
+              onClick={onConfirm}
+              className="flex-1 px-6 py-3 text-sm font-medium text-white bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              Ya, Keluar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default MahasiswaDashboard
