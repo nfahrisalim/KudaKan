@@ -7,6 +7,7 @@ import { useToast } from '../hooks/useToast.jsx'
 const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
   const [activeRole, setActiveRole] = useState('mahasiswa')
   const [isRegisterMode, setIsRegisterMode] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -148,34 +149,43 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
           </h2>
 
           {/* Role Selection */}
-          <div className="flex space-x-4 mb-6">
-            <button
-              onClick={() => setActiveRole('mahasiswa')}
-              className={`flex-1 py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 ${
-                activeRole === 'mahasiswa'
-                  ? 'bg-kudakan-red text-kudakan-white'
-                  : 'bg-muted text-muted-foreground hover:bg-kudakan-red hover:text-kudakan-white'
-              }`}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              Mahasiswa
-            </button>
-            <button
-              onClick={() => setActiveRole('kantin')}
-              className={`flex-1 py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 ${
-                activeRole === 'kantin'
-                  ? 'bg-kudakan-red text-kudakan-white'
-                  : 'bg-muted text-muted-foreground hover:bg-kudakan-red hover:text-kudakan-white'
-              }`}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-store-icon lucide-store">
-                <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M15 22v-4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v4"/><path d="M2 7h20"/><path d="M22 7v3a2 2 0 0 1-2 2a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 16 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 12 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 8 12a2.7 2.7 0 0 1-1.59-.63.7.7 0 0 0-.82 0A2.7 2.7 0 0 1 4 12a2 2 0 0 1-2-2V7"/>
-              </svg>
-              Kantin
-            </button>
-          </div>
+          {isRegisterMode && ( 
+            <div className="mb-9">
+              <div className="max-w-md mx-auto">
+                <div className="relative bg-slate-200 dark:bg-neutral-800 p-1 rounded-2xl">
+                  <div
+                    className={`absolute top-2 bottom-2 bg-gradient-to-r from-red-500 to-red-600 rounded-xl transition-all duration-300 shadow-lg ${
+                      activeRole === 'mahasiswa' ? 'left-2 right-1/2 mr-1' : 'right-2 left-1/2 ml-1'
+                    }`}
+                  />
+                  <div className="relative flex">
+                    <button
+                      onClick={() => setActiveRole('mahasiswa')}
+                      className={`flex-1 py-4 px-6 rounded-xl transition-all duration-300 flex items-center justify-center gap-3 font-semibold ${
+                        activeRole === 'mahasiswa' ? 'text-white' : 'text-slate-600'
+                      }`}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user-round-icon lucide-user-round">
+                        <circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/>
+                      </svg>
+                      Mahasiswa
+                    </button>
+                    <button
+                      onClick={() => setActiveRole('kantin')}
+                      className={`flex-1 py-4 px-6 rounded-xl transition-all duration-300 flex items-center justify-center gap-3 font-semibold ${
+                        activeRole === 'kantin' ? 'text-white' : 'text-slate-600'
+                      }`}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chef-hat-icon lucide-chef-hat">
+                        <path d="M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589 5 5 0 0 0-9.186 0 4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1Z"/><path d="M6 17h12"/>
+                      </svg>
+                      Kantin
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit}>
             {/* Input Tambahan Saat Register Mahasiswa */}
@@ -227,7 +237,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
             {/* Email */}
             <div className="mb-4">
               <label className="block text-sm font-medium mb-2">
-                {activeRole === 'mahasiswa' ? 'Email Mahasiswa' : 'Email Kantin'}
+                {isRegisterMode ? `Email ${activeRole === 'mahasiswa' ? 'Mahasiswa' : 'Kantin'}` : `Email`}
               </label>
               <input
                 type="email"
@@ -241,29 +251,49 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess }) => {
             </div>
 
             {/* Password */}
-            <div className="mb-6">
+            <div className="mb-6 relative">
               <label className="block text-sm font-medium mb-2">Password</label>
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 name="password"
                 value={formData.password}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-border rounded-lg bg-white text-black placeholder-gray-500 dark:bg-neutral-800 dark:text-white dark:placeholder-gray-400 focus:ring-2 focus:ring-kudakan-red focus:outline-none"
+                className="w-full px-4 py-2 pr-10 border border-border rounded-lg bg-white text-black placeholder-gray-500 dark:bg-neutral-800 dark:text-white dark:placeholder-gray-400 focus:ring-2 focus:ring-kudakan-red focus:outline-none"
                 placeholder="Masukkan password"
                 required
               />
+              {/* Show/Hide Password */}
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-9 text-gray-500 dark:text-gray-300 hover:text-black dark:hover:text-white"
+              >
+                {showPassword ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a10.05 10.05 0 012.873-4.396m3.186-1.682A9.956 9.956 0 0112 5c4.477 0 8.268 2.943 9.542 7a9.973 9.973 0 01-4.132 5.225M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3l18 18" />
+                  </svg>
+                )}
+              </button>
             </div>
 
             {/* Tombol Submit */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-kudakan-red text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50"
+              className="w-full py-3 px-5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl group relative overflow-hidden"
             >
+              <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+              <div className="relative flex items-center justify-center gap-3"></div>
               {loading ? 'Memproses...' : (
                 isRegisterMode
-                  ? `Daftar sebagai ${activeRole === 'mahasiswa' ? 'Mahasiswa' : 'Kantin'}`
-                  : `Masuk sebagai ${activeRole === 'mahasiswa' ? 'Mahasiswa' : 'Kantin'}`
+                ? `Daftar sebagai ${activeRole === 'mahasiswa' ? 'Mahasiswa' : 'Kantin'}`
+                : `Masuk`
               )}
             </button>
 
