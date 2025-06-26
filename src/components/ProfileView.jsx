@@ -26,8 +26,61 @@ const ProfileView = ({ user, onBack, onLogout }) => {
     try {
       setLoading(true)
       const data = await authAPI.getCurrentUser()
-      setProfileData(data)
-      setFormData(data)
+      console.log('Raw profile data:', data)
+      
+      // Process data based on user type
+      let processedData = {}
+      
+      if (user.type === 'mahasiswa') {
+        // Check if data has mahasiswa nested object or direct properties
+        if (data.mahasiswa) {
+          processedData = {
+            email: data.email,
+            nama_mahasiswa: data.mahasiswa.nama,
+            nim: data.mahasiswa.nim,
+            alamat_pengiriman: data.mahasiswa.alamat_pengiriman,
+            nomor_hp: data.mahasiswa.nomor_hp
+          }
+        } else {
+          // Direct properties (fallback)
+          processedData = {
+            email: data.email,
+            nama_mahasiswa: data.nama || data.name,
+            nim: data.nim,
+            alamat_pengiriman: data.alamat_pengiriman,
+            nomor_hp: data.nomor_hp
+          }
+        }
+      } else if (user.type === 'kantin') {
+        // Check if data has kantin nested object or direct properties
+        if (data.kantin) {
+          processedData = {
+            email: data.email,
+            nama_kantin: data.kantin.nama_kantin,
+            nama_tenant: data.kantin.nama_tenant,
+            nama_pemilik: data.kantin.nama_pemilik,
+            nomor_pemilik: data.kantin.nomor_pemilik,
+            jam_operasional: data.kantin.jam_operasional
+          }
+        } else {
+          // Direct properties (fallback)
+          processedData = {
+            email: data.email,
+            nama_kantin: data.nama_kantin || data.kantinName,
+            nama_tenant: data.nama_tenant,
+            nama_pemilik: data.nama_pemilik,
+            nomor_pemilik: data.nomor_pemilik,
+            jam_operasional: data.jam_operasional
+          }
+        }
+      } else {
+        // Fallback to original data structure
+        processedData = data
+      }
+      
+      console.log('Processed profile data:', processedData)
+      setProfileData(processedData)
+      setFormData(processedData)
     } catch (error) {
       console.error('Error fetching profile:', error)
       showToast('Gagal memuat data profil', 'error')

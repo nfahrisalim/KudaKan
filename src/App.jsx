@@ -11,6 +11,7 @@ import MahasiswaDashboard from './components/MahasiswaDashboard.jsx'
 import KantinDashboard from './components/KantinDashboard.jsx'
 import ProfileCompleteModal from './components/ProfileCompleteModal.jsx'
 import ProfileView from './components/ProfileView.jsx'
+import AllMenusView from './components/AllMenusView.jsx'
 import Toast from './components/Toast.jsx'
 import { useToast } from './hooks/useToast.jsx'
 import { authAPI } from './services/api.js'
@@ -22,6 +23,9 @@ function App() {
   const [currentView, setCurrentView] = useState('home') // 'home', 'dashboard', 'profile'
   const [loading, setLoading] = useState(true)
   const { toast, showToast, hideToast } = useToast()
+  const [showProfile, setShowProfile] = useState(false)
+  const [showAllMenus, setShowAllMenus] = useState(false)
+  const [showLogin, setShowLogin] = useState(false)
 
   // Check for existing login on app start
   useEffect(() => {
@@ -53,11 +57,11 @@ function App() {
             processedUser.jamOperasional = userInfo.kantin.jam_operasional
             processedUser.isProfileComplete = !!(userInfo.kantin.nama_tenant && userInfo.kantin.nama_pemilik && userInfo.kantin.nomor_pemilik && userInfo.kantin.jam_operasional)
           }
-          
+
           console.log('Updated processed user:', processedUser)
 
           setCurrentUser(processedUser)
-          
+
           // Save updated user data back to localStorage
           localStorage.setItem('currentUser', JSON.stringify(processedUser))
 
@@ -126,6 +130,14 @@ function App() {
     setCurrentView('profile')
   }
 
+  const handleViewAllMenus = () => {
+    if (currentUser) {
+      setShowAllMenus(true)
+    } else {
+      setIsLoginModalOpen(true)
+    }
+  }
+
   if (loading) {
     return (
       <ThemeProvider>
@@ -142,13 +154,37 @@ function App() {
   // Show dashboard if user is logged in and in dashboard view
   if (currentUser && currentView === 'dashboard') {
     if (currentUser.type === 'mahasiswa') {
+      const user = currentUser
+      if (showProfile) {
+        return (
+          <ProfileView
+            user={user}
+            onBack={() => setShowProfile(false)}
+            onLogout={handleLogout}
+          />
+        )
+      }
+
+      if (showAllMenus) {
+        return (
+          <AllMenusView
+            user={user}
+            onBack={() => setShowAllMenus(false)}
+            onAddToCart={(item) => {
+              // Handle add to cart - you might want to pass this to MahasiswaDashboard
+              console.log('Add to cart:', item)
+            }}
+          />
+        )
+      }
       return (
         <ThemeProvider>
-          <MahasiswaDashboard 
-            user={currentUser} 
+          <MahasiswaDashboard
+            user={user}
             onLogout={handleLogout}
-            onGoHome={handleGoHome}
-            onGoProfile={handleGoProfile}
+            onGoHome={() => setCurrentView('home')}
+            onGoProfile={() => setShowProfile(true)}
+            onViewAllMenus={() => setShowAllMenus(true)}
           />
         </ThemeProvider>
       )
@@ -193,7 +229,18 @@ function App() {
         <main>
           <HeroSection />
           <AboutSection />
-          <MenuSection />
+          <MenuSection 
+            onViewAllMenus={handleViewAllMenus} 
+            user={currentUser}
+            onShowLogin={() => setIsLoginModalOpen(true)}
+            onAddToCart={(item) => {
+              if (currentUser && currentUser.type === 'mahasiswa') {
+                // Navigate to dashboard and add to cart
+                setCurrentView('dashboard');
+                // You can pass the item to be added to cart here if needed
+              }
+            }}
+          />
           <DeliverySection />
         </main>
         <Footer />

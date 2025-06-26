@@ -24,6 +24,7 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
   const [profileComplete, setProfileComplete] = useState(false)
   const [newMenuItem, setNewMenuItem] = useState({
     nama_menu: '',
+    deskripsi: '',
     harga: '',
     tipe_menu: 'makanan'
   })
@@ -37,9 +38,14 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
   useEffect(() => {
     const checkProfileStatus = async () => {
       try {
-        const userInfo = await authAPI.getCurrentUser()
-        const isComplete = userInfo.is_profile_complete || false
+        const profileStatus = await kantinAPI.getProfileStatus()
+        console.log('Profile status check:', profileStatus)
+        
+        const isComplete = profileStatus.is_complete || false
+        
+        console.log('Is profile complete:', isComplete)
         setProfileComplete(isComplete)
+        
         if (!isComplete) {
           setShowProfileModal(true)
         }
@@ -53,78 +59,119 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
     }
   }, [user.id])
 
-  // Fetch data dari API
+  // Fetch menu data
+  const fetchMenuData = async () => {
+    if (!user.id) return
+
+    try {
+      const menus = await menuAPI.getByKantin(user.id)
+      const menuData = menus.map(menu => ({
+        id: menu.id_menu,
+        name: menu.nama_menu,
+        price: parseInt(menu.harga),
+        available: true, // API tidak menyediakan field available, default true
+        stock: 50, // Mock data untuk stock
+        sold: Math.floor(Math.random() * 20), // Mock data untuk sold
+        type: menu.tipe_menu,
+        originalData: menu
+      }))
+
+      setMenuItems(menuData)
+      return menus
+    } catch (error) {
+      console.error('Error fetching menu data:', error)
+      return []
+    }
+  }
+
+  // Fetch orders data
+  const fetchOrdersData = async (menus = null) => {
+    if (!user.id) return
+
+    try {
+      // Use existing menus if provided, otherwise fetch fresh
+      const menuList = menus || await menuAPI.getByKantin(user.id)
+      
+      const kantinOrders = await pesananAPI.getByKantin(user.id)
+      const ordersWithDetails = await Promise.all(
+        kantinOrders.map(async (order) => {
+          const details = await pesananAPI.getWithDetails(order.id_pesanan)
+
+          return {
+            id: order.id_pesanan,
+            customerName: details.mahasiswa?.nama || 'Unknown',
+            nim: details.mahasiswa?.nim || 'Unknown',
+            items: details.detail_pesanan?.map(d => {
+              const menu = menuList.find(m => m.id_menu === d.id_menu)
+              return menu ? `${menu.nama_menu} (${d.jumlah}x)` : 'Unknown Item'
+            }) || [],
+            total: details.detail_pesanan?.reduce((sum, d) => sum + parseInt(d.harga_total), 0) || 0,
+            status: order.status, // Gunakan status langsung dari API: 'proses' atau 'selesai'
+            time: new Date(order.tanggal).toLocaleTimeString('id-ID', { 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            }),
+            date: new Date(order.tanggal).toLocaleDateString('id-ID'),
+            originalData: order
+          }
+        })
+      )
+
+      setOrders(ordersWithDetails)
+    } catch (error) {
+      console.error('Error fetching orders data:', error)
+    }
+  }
+
+  // Initial data fetch
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchInitialData = async () => {
       if (!user.id) return
 
       try {
         setLoading(true)
-
-        // Fetch menu items untuk kantin ini
-        const menus = await menuAPI.getByKantin(user.id)
-        const menuData = menus.map(menu => ({
-          id: menu.id_menu,
-          name: menu.nama_menu,
-          price: parseInt(menu.harga),
-          available: true, // API tidak menyediakan field available, default true
-          stock: 50, // Mock data untuk stock
-          sold: Math.floor(Math.random() * 20), // Mock data untuk sold
-          type: menu.tipe_menu,
-          originalData: menu
-        }))
-
-        setMenuItems(menuData)
-
-        // Fetch pesanan untuk kantin ini
-        const kantinOrders = await pesananAPI.getByKantin(user.id)
-        const ordersWithDetails = await Promise.all(
-          kantinOrders.map(async (order) => {
-            const details = await pesananAPI.getWithDetails(order.id_pesanan)
-
-            return {
-              id: order.id_pesanan,
-              customerName: details.mahasiswa?.nama || 'Unknown',
-              nim: details.mahasiswa?.nim || 'Unknown',
-              items: details.detail_pesanan?.map(d => {
-                const menu = menus.find(m => m.id_menu === d.id_menu)
-                return menu ? `${menu.nama_menu} (${d.jumlah}x)` : 'Unknown Item'
-              }) || [],
-              total: details.detail_pesanan?.reduce((sum, d) => sum + parseInt(d.harga_total), 0) || 0,
-              status: order.status === 'proses' ? 'pending' : 'completed',
-              time: new Date(order.tanggal).toLocaleTimeString('id-ID', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-              }),
-              date: new Date(order.tanggal).toLocaleDateString('id-ID'),
-              originalData: order
-            }
-          })
-        )
-
-        setOrders(ordersWithDetails)
-
+        const menus = await fetchMenuData()
+        await fetchOrdersData(menus)
       } catch (error) {
-        console.error('Error fetching data:', error)
+        console.error('Error fetching initial data:', error)
       } finally {
         setLoading(false)
       }
     }
 
-    fetchData()
+    fetchInitialData()
   }, [user.id])
+
+  // Real-time updates for orders when on orders tab
+  useEffect(() => {
+    let intervalId = null
+
+    if (activeTab === 'orders') {
+      // Update orders every 10 seconds when on orders tab
+      intervalId = setInterval(() => {
+        fetchOrdersData()
+      }, 10000)
+    }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId)
+      }
+    }
+  }, [activeTab, user.id])
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
-      const apiStatus = newStatus === 'completed' ? 'selesai' : 'proses'
-      await pesananAPI.updateStatus(orderId, apiStatus)
+      // API hanya mendukung 'proses' dan 'selesai'
+      await pesananAPI.updateStatus(orderId, newStatus)
 
-      setOrders(orders.map(order => 
-        order.id === orderId ? { ...order, status: newStatus } : order
-      ))
+      // Immediately refresh orders data to reflect changes
+      await fetchOrdersData()
+      
+      showToast('Status pesanan berhasil diperbarui!', 'success')
     } catch (error) {
       console.error('Error updating order status:', error)
-      alert('Gagal mengupdate status pesanan')
+      showToast('Gagal mengupdate status pesanan', 'error')
     }
   }
 
@@ -153,10 +200,14 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
       console.log(editingItem ? 'Updating menu item:' : 'Adding menu item for user ID:', user.id)
 
       const menuData = {
-        ...newMenuItem,
         id_kantin: user.id,
-        harga: parseInt(newMenuItem.harga)
+        nama_menu: newMenuItem.nama_menu,
+        deskripsi: newMenuItem.deskripsi || null, // Ensure deskripsi is properly set
+        harga: parseInt(newMenuItem.harga),
+        tipe_menu: newMenuItem.tipe_menu
       }
+
+      console.log('Menu data being sent:', menuData)
 
       let response
       if (editingItem) {
@@ -179,6 +230,7 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
       // Reset form
       setNewMenuItem({
         nama_menu: '',
+        deskripsi: '',
         harga: '',
         tipe_menu: 'makanan'
       })
@@ -222,6 +274,7 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
     setEditingItem(item)
     setNewMenuItem({
       nama_menu: item.name,
+      deskripsi: item.description || '',
       harga: item.price.toString(),
       tipe_menu: item.type
     })
@@ -232,6 +285,7 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
     setEditingItem(null)
     setNewMenuItem({
       nama_menu: '',
+      deskripsi: '',
       harga: '',
       tipe_menu: 'makanan'
     })
@@ -257,7 +311,7 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
     try {
       showToast('Menghapus menu...', 'info')
       await menuAPI.delete(itemId)
-      
+
       // Update state immediately after successful deletion
       setMenuItems(prevItems => prevItems.filter(item => item.id !== itemId))
       showToast('Menu berhasil dihapus!', 'success')
@@ -269,14 +323,10 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'pending':
+      case 'proses':
         return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-      case 'preparing':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-      case 'ready':
+      case 'selesai':
         return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-      case 'completed':
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
       default:
         return 'bg-gray-100 text-gray-800'
     }
@@ -284,10 +334,8 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
 
   const getStatusText = (status) => {
     switch (status) {
-      case 'pending': return 'Menunggu'
-      case 'preparing': return 'Diproses'
-      case 'ready': return 'Siap'
-      case 'completed': return 'Selesai'
+      case 'proses': return 'Diproses'
+      case 'selesai': return 'Selesai'
       default: return status
     }
   }
@@ -295,8 +343,8 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
   const todayStats = {
     totalOrders: orders.length,
     totalRevenue: orders.reduce((sum, order) => sum + order.total, 0),
-    pendingOrders: orders.filter(o => o.status === 'pending').length,
-    completedOrders: orders.filter(o => o.status === 'completed').length
+    pendingOrders: orders.filter(o => o.status === 'proses').length,
+    completedOrders: orders.filter(o => o.status === 'selesai').length
   }
 
   const handleLogout = () => {
@@ -634,29 +682,18 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
                           Total: Rp {order.total.toLocaleString()}
                         </div>
                         <div className="flex space-x-2">
-                          {order.status === 'pending' && (
+                          {order.status === 'proses' && (
                             <button
-                              onClick={() => updateOrderStatus(order.id, 'preparing')}
-                              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                            >
-                              Mulai Proses
-                            </button>
-                          )}
-                          {order.status === 'preparing' && (
-                            <button
-                              onClick={() => updateOrderStatus(order.id, 'ready')}
+                              onClick={() => updateOrderStatus(order.id, 'selesai')}
                               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
                             >
-                              Siap Diambil
+                              Selesaikan Pesanan
                             </button>
                           )}
-                          {order.status === 'ready' && (
-                            <button
-                              onClick={() => updateOrderStatus(order.id, 'completed')}
-                              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm"
-                            >
-                              Selesai
-                            </button>
+                          {order.status === 'selesai' && (
+                            <span className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm">
+                              Pesanan Selesai
+                            </span>
                           )}
                         </div>
                       </div>
@@ -739,6 +776,19 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
                       onChange={(e) => setNewMenuItem({...newMenuItem, nama_menu: e.target.value})}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                       placeholder="Masukkan nama menu"
+                    />
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Deskripsi Menu
+                    </label>
+                    <textarea
+                      value={newMenuItem.deskripsi}
+                      onChange={(e) => setNewMenuItem({...newMenuItem, deskripsi: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                      placeholder="Masukkan deskripsi menu (opsional)"
+                      rows="3"
                     />
                   </div>
 

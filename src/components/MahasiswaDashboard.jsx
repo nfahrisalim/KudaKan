@@ -1,178 +1,248 @@
-import { useState, useEffect } from 'react'
-import { pesananAPI, menuAPI, kantinAPI, authAPI, mahasiswaAPI } from '../services/api.js'
-import Toast from './Toast.jsx'
-import ProfileCompleteModal from './ProfileCompleteModal.jsx'
-import { useToast } from '../hooks/useToast.jsx'
+import { useState, useEffect } from "react";
+import {
+  pesananAPI,
+  menuAPI,
+  kantinAPI,
+  authAPI,
+  mahasiswaAPI,
+} from "../services/api.js";
+import Toast from "./Toast.jsx";
+import ProfileCompleteModal from "./ProfileCompleteModal.jsx";
+import { useToast } from "../hooks/useToast.jsx";
 
 const MahasiswaDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
-  const [searchTerm, setSearchTerm] = useState('')
-  const [selectedType, setSelectedType] = useState('all')
-  const [kantinList, setKantinList] = useState([])
-  const [selectedKantin, setSelectedKantin] = useState(null)
-  const [menuItems, setMenuItems] = useState([])
-  const [cart, setCart] = useState([])
-  const [showCart, setShowCart] = useState(false)
-  const [orders, setOrders] = useState([])
-  const [activeView, setActiveView] = useState('explore') // 'explore' or 'orders'
-  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedType, setSelectedType] = useState("all");
+  const [kantinList, setKantinList] = useState([]);
+  const [selectedKantin, setSelectedKantin] = useState(null);
+  const [menuItems, setMenuItems] = useState([]);
+  const [cart, setCart] = useState([]);
+  const [showCart, setShowCart] = useState(false);
+  const [orders, setOrders] = useState([]);
+  const [activeTab, setActiveTab] = useState("menu"); // 'menu', 'cart', 'orders'
+  const [loading, setLoading] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [showProfileModal, setShowProfileModal] = useState(false)
-  const [profileComplete, setProfileComplete] = useState(false)
-  const { toast, showToast, hideToast } = useToast()
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileComplete, setProfileComplete] = useState(false);
+  const { toast, showToast, hideToast } = useToast();
 
   // Check profile status on mount
   useEffect(() => {
     const checkProfileStatus = async () => {
       try {
-        const userInfo = await authAPI.getCurrentUser()
-        const isComplete = userInfo.is_profile_complete || false
-        setProfileComplete(isComplete)
+        const userInfo = await authAPI.getCurrentUser();
+        console.log("Profile status check:", userInfo);
+
+        // For mahasiswa, check if all required fields are present
+        let isComplete = false;
+        if (userInfo.mahasiswa) {
+          const mahasiswa = userInfo.mahasiswa;
+          isComplete = !!(mahasiswa.alamat_pengiriman && mahasiswa.nomor_hp);
+        } else {
+          isComplete = userInfo.is_profile_complete || false;
+        }
+
+        console.log("Profile complete status:", isComplete);
+        setProfileComplete(isComplete);
+
         if (!isComplete) {
-          setShowProfileModal(true)
+          setShowProfileModal(true);
         }
       } catch (error) {
-        console.error('Error checking profile status:', error)
+        console.error("Error checking profile status:", error);
       }
-    }
+    };
 
     if (user.id) {
-      checkProfileStatus()
+      checkProfileStatus();
     }
-  }, [user.id])
+  }, [user.id]);
 
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        setLoading(true)
+        setLoading(true);
 
         // Fetch kantins
-        const kantins = await kantinAPI.getAll()
-        setKantinList(kantins)
+        const kantins = await kantinAPI.getAll();
+        setKantinList(kantins);
+
+        // Fetch all menus
+        const allMenus = await menuAPI.getAll();
+        const menuData = allMenus.map((menu) => {
+          const kantin = kantins.find((k) => k.id_kantin === menu.id_kantin);
+          return {
+            id: menu.id_menu,
+            name: menu.nama_menu,
+            description: menu.deskripsi || "Tidak ada deskripsi",
+            price: parseInt(menu.harga),
+            available: true,
+            image: menu.img_menu || getDefaultMenuImage(menu.tipe_menu),
+            emoji: getMenuEmoji(menu.tipe_menu),
+            type: menu.tipe_menu,
+            canteen: kantin ? kantin.nama_kantin : "Unknown Kantin",
+            kantinId: menu.id_kantin,
+            originalData: menu,
+          };
+        });
+        setMenuItems(menuData);
 
         // Fetch orders jika user ada
         if (user.id) {
-          const userOrders = await pesananAPI.getByMahasiswa(user.id)
+          const userOrders = await pesananAPI.getByMahasiswa(user.id);
           const ordersWithDetails = await Promise.all(
             userOrders.map(async (order) => {
-              const details = await pesananAPI.getWithDetails(order.id_pesanan)
+              const details = await pesananAPI.getWithDetails(order.id_pesanan);
               return {
                 id: order.id_pesanan,
-                kantinName: details.kantin?.nama_kantin || 'Unknown Kantin',
-                items: details.detail_pesanan?.map(d => {
-                  return d.menu ? `${d.menu.nama_menu} (${d.jumlah}x)` : 'Unknown Item'
-                }) || [],
-                total: details.detail_pesanan?.reduce((sum, d) => sum + parseInt(d.harga_total), 0) || 0,
-                status: order.status === 'proses' ? 'processing' : 'completed',
-                time: new Date(order.tanggal).toLocaleTimeString('id-ID', { 
-                  hour: '2-digit', 
-                  minute: '2-digit' 
+                kantinName: details.kantin?.nama_kantin || "Unknown Kantin",
+                items:
+                  details.detail_pesanan?.map((d) => {
+                    return d.menu
+                      ? `${d.menu.nama_menu} (${d.jumlah}x)`
+                      : "Unknown Item";
+                  }) || [],
+                total:
+                  details.detail_pesanan?.reduce(
+                    (sum, d) => sum + parseInt(d.harga_total),
+                    0,
+                  ) || 0,
+                status:
+                  order.status === "proses" ? "Sedang Diproses" : "Selesai",
+                time: new Date(order.tanggal).toLocaleTimeString("id-ID", {
+                  hour: "2-digit",
+                  minute: "2-digit",
                 }),
-                date: new Date(order.tanggal).toLocaleDateString('id-ID'),
-                originalData: order
-              }
-            })
-          )
-          setOrders(ordersWithDetails)
+                date: new Date(order.tanggal).toLocaleDateString("id-ID"),
+                originalData: order,
+              };
+            }),
+          );
+          setOrders(ordersWithDetails);
         }
       } catch (error) {
-        console.error('Error fetching data:', error)
-        showToast('Gagal memuat data', 'error')
+        console.error("Error fetching data:", error);
+        showToast("Gagal memuat data", "error");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchInitialData()
-  }, [user.id])
+    fetchInitialData();
+  }, [user.id]);
 
   // Helper function untuk emoji menu
   const getMenuEmoji = (type) => {
     switch (type) {
-      case 'makanan': return '🍛'
-      case 'minuman': return '🥤'
-      case 'snack': return '🍪'
-      default: return '🍽️'
+      case "makanan":
+        return "🍛";
+      case "minuman":
+        return "🥤";
+      case "snack":
+        return "🍪";
+      default:
+        return "🍽️";
     }
-  }
+  };
+
+  // Helper function untuk default image
+  const getDefaultMenuImage = (type) => {
+    switch (type) {
+      case "makanan":
+        return "https://images.unsplash.com/photo-1512058564366-18510be2db19?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=250";
+      case "minuman":
+        return "https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=250";
+      case "snack":
+        return "https://images.unsplash.com/photo-1587132137056-bfbf0166836e?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=250";
+      default:
+        return "https://images.unsplash.com/photo-1512058564366-18510be2db19?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=250";
+    }
+  };
 
   const addToCart = (item) => {
-    setCart([...cart, { ...item, quantity: 1, cartId: Date.now() }])
-  }
+    setCart([...cart, { ...item, quantity: 1, cartId: Date.now() }]);
+  };
 
   const removeFromCart = (cartId) => {
-    setCart(cart.filter(item => item.cartId !== cartId))
-  }
+    setCart(cart.filter((item) => item.cartId !== cartId));
+  };
 
   const getTotalCart = () => {
-    return cart.reduce((total, item) => total + (item.price * item.quantity), 0)
-  }
+    return cart.reduce((total, item) => total + item.price * item.quantity, 0);
+  };
 
   const handleOrder = async () => {
-    if (cart.length === 0) return
+    if (cart.length === 0) return;
 
     try {
       // Group cart items by kantin
       const ordersByKantin = cart.reduce((acc, item) => {
-        const kantinId = item.kantinId
+        const kantinId = item.kantinId;
         if (!acc[kantinId]) {
-          acc[kantinId] = []
+          acc[kantinId] = [];
         }
-        acc[kantinId].push(item)
-        return acc
-      }, {})
+        acc[kantinId].push(item);
+        return acc;
+      }, {});
 
-      // Create separate pesanan for each kantin
+      // Create separate pesanan for each kantin using new API format
       for (const [kantinId, items] of Object.entries(ordersByKantin)) {
-        // Create pesanan
-        const pesanan = await pesananAPI.create({
-          id_kantin: parseInt(kantinId),
-          id_mahasiswa: user.id,
-          status: 'proses'
-        })
+        // Prepare menu items for the new API format
+        const menuItemsForOrder = items.map(item => ({
+          id_menu: item.id,
+          jumlah: item.quantity
+        }));
 
-        // Add detail pesanan for each item
-        for (const item of items) {
-          await detailPesananAPI.createAutoCalculate(
-            pesanan.id_pesanan,
-            item.id,
-            item.quantity
-          )
-        }
+        // Create pesanan using the new endpoint that accepts menu_items directly
+        await pesananAPI.create({
+          menu_items: menuItemsForOrder
+        });
       }
 
       // Clear cart and refresh orders
-      setCart([])
+      setCart([]);
 
       // Refresh orders list
-      const userOrders = await pesananAPI.getByMahasiswa(user.id)
+      const userOrders = await pesananAPI.getByMahasiswa(user.id);
       const ordersWithDetails = await Promise.all(
         userOrders.map(async (order) => {
-          const details = await pesananAPI.getWithDetails(order.id_pesanan)
-          const kantin = kantinList.find(k => k.id_kantin === order.id_kantin)
+          const details = await pesananAPI.getWithDetails(order.id_pesanan);
+          const kantin = kantinList.find(
+            (k) => k.id_kantin === order.id_kantin,
+          );
 
           return {
             id: order.id_pesanan,
-            items: details.detail_pesanan?.map(d => {
-              const menu = menuItems.find(m => m.id === d.id_menu)
-              return menu ? `${menu.name} (${d.jumlah}x)` : 'Unknown Item'
-            }) || [],
-            total: details.detail_pesanan?.reduce((sum, d) => sum + parseInt(d.harga_total), 0) || 0,
-            status: order.status === 'proses' ? 'Sedang Diproses' : 'Selesai',
-            date: new Date(order.tanggal).toLocaleDateString('id-ID'),
-            canteen: kantin ? kantin.nama_kantin : 'Unknown',
-            originalData: order
-          }
-        })
-      )
+            kantinName: details.kantin?.nama_kantin || kantin?.nama_kantin || "Unknown Kantin",
+            items:
+              details.detail_pesanan?.map((d) => {
+                return d.menu
+                  ? `${d.menu.nama_menu} (${d.jumlah}x)`
+                  : "Unknown Item";
+              }) || [],
+            total:
+              details.detail_pesanan?.reduce(
+                (sum, d) => sum + parseInt(d.harga_total),
+                0,
+              ) || 0,
+            status: order.status === "proses" ? "Sedang Diproses" : "Selesai",
+            time: new Date(order.tanggal).toLocaleTimeString("id-ID", {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            date: new Date(order.tanggal).toLocaleDateString("id-ID"),
+            originalData: order,
+          };
+        }),
+      );
 
-      setOrders(ordersWithDetails)
-      alert('Pesanan berhasil dibuat!')
-
+      setOrders(ordersWithDetails);
+      showToast("Pesanan berhasil dibuat!", "success");
     } catch (error) {
-      console.error('Error creating order:', error)
-      alert('Gagal membuat pesanan. Silakan coba lagi.')
+      console.error("Error creating order:", error);
+      showToast("Gagal membuat pesanan. Silakan coba lagi.", "error");
     }
-  }
+  };
 
   const handleLogout = () => {
     setShowLogoutModal(false);
@@ -206,8 +276,18 @@ const MahasiswaDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
                 className="group relative px-6 py-2.5 text-sm font-medium text-white rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2 overflow-hidden"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-500 opacity-0 group-hover:opacity-20 transition-opacity duration-200"></div>
-                <svg className="w-4 h-4 transform group-hover:rotate-12 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                <svg
+                  className="w-4 h-4 transform group-hover:rotate-12 transition-transform duration-200"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                  />
                 </svg>
                 <span className="relative z-10">Beranda</span>
                 <div className="absolute -left-2 -top-2 w-16 h-16 bg-white opacity-10 rounded-full transform scale-0 group-hover:scale-100 transition-transform duration-300"></div>
@@ -218,8 +298,12 @@ const MahasiswaDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-gray-300 to-gray-400 dark:from-gray-500 dark:to-gray-400 opacity-0 group-hover:opacity-20 transition-opacity duration-200 rounded-xl"></div>
                 <div className="relative w-4 h-4 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center">
-                  <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                  <svg
+                    className="w-2.5 h-2.5 text-white"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
                   </svg>
                 </div>
                 <span className="relative z-10 font-medium">Profil</span>
@@ -229,14 +313,24 @@ const MahasiswaDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
                 onClick={() => setShowLogoutModal(true)}
                 className="group relative px-6 py-2.5 text-sm font-medium text-white rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2 overflow-hidden"
               >
-              {/* <button
+                {/* <button
                 onClick={onLogout}
                 className="group relative px-6 py-2.5 text-sm font-medium text-white rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-2 overflow-hidden"
               > */}
-               <div className="absolute inset-0 bg-gradient-to-r from-red-400 to-red-500 opacity-0 group-hover:opacity-20 transition-opacity duration-200"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-red-400 to-red-500 opacity-0 group-hover:opacity-20 transition-opacity duration-200"></div>
                 <div className="relative w-4 h-4 flex items-center justify-center">
-                  <svg className="w-4 h-4 transform group-hover:translate-x-0.5 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  <svg
+                    className="w-4 h-4 transform group-hover:translate-x-0.5 transition-transform duration-200"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                    />
                   </svg>
                 </div>
                 <span className="relative z-10 font-medium">Keluar</span>
@@ -268,33 +362,49 @@ const MahasiswaDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
                 <ul className="space-y-3">
                   <li>
                     <button
-                      onClick={() => setActiveTab('menu')}
+                      onClick={() => setActiveTab("menu")}
                       className={`group w-full text-left px-4 py-3 rounded-xl transition-all duration-200 transform hover:scale-[1.02] relative ${
-                        activeTab === 'menu'
-                          ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/25'
-                          : 'text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-700 dark:hover:to-gray-600 hover:shadow-md'
+                        activeTab === "menu"
+                          ? "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/25"
+                          : "text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-700 dark:hover:to-gray-600 hover:shadow-md"
                       }`}
                     >
                       <div className="flex items-center space-x-3">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${
-                          activeTab === 'menu' 
-                            ? 'bg-white/20 text-white' 
-                            : 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 group-hover:bg-orange-200 dark:group-hover:bg-orange-800/40'
-                        }`}>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2zM9 13H7a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2zM17 5h-2a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2zM17 13h-2a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2z" />
+                        <div
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${
+                            activeTab === "menu"
+                              ? "bg-white/20 text-white"
+                              : "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 group-hover:bg-orange-200 dark:group-hover:bg-orange-800/40"
+                          }`}
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 5H7a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2zM9 13H7a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2zM17 5h-2a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2zM17 13h-2a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2z"
+                            />
                           </svg>
                         </div>
                         <div>
                           <span className="font-medium">Menu Makanan</span>
-                          <p className={`text-xs mt-0.5 ${
-                            activeTab === 'menu' 
-                              ? 'text-white/80' 
-                              : 'text-gray-500 dark:text-gray-400'
-                          }`}>Lihat semua menu</p>
+                          <p
+                            className={`text-xs mt-0.5 ${
+                              activeTab === "menu"
+                                ? "text-white/80"
+                                : "text-gray-500 dark:text-gray-400"
+                            }`}
+                          >
+                            Lihat semua menu
+                          </p>
                         </div>
                       </div>
-                      {activeTab === 'menu' && (
+                      {activeTab === "menu" && (
                         <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
                           <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
                         </div>
@@ -304,30 +414,44 @@ const MahasiswaDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
 
                   <li>
                     <button
-                      onClick={() => setActiveTab('cart')}
+                      onClick={() => setActiveTab("cart")}
                       className={`group w-full text-left px-4 py-3 rounded-xl transition-all duration-200 transform hover:scale-[1.02] relative ${
-                        activeTab === 'cart'
-                          ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/25'
-                          : 'text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-700 dark:hover:to-gray-600 hover:shadow-md'
+                        activeTab === "cart"
+                          ? "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/25"
+                          : "text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-700 dark:hover:to-gray-600 hover:shadow-md"
                       }`}
                     >
                       <div className="flex items-center space-x-3">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 relative ${
-                          activeTab === 'cart' 
-                            ? 'bg-white/20 text-white' 
-                            : 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400 group-hover:bg-green-200 dark:group-hover:bg-green-800/40'
-                        }`}>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.35 2.15a1 1 0 001.41 1.41L7 13m0 0l2.83 2.83a1 1 0 001.41-1.41L7 13z" />
+                        <div
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 relative ${
+                            activeTab === "cart"
+                              ? "bg-white/20 text-white"
+                              : "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400 group-hover:bg-green-200 dark:group-hover:bg-green-800/40"
+                          }`}
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.35 2.15a1 1 0 001.41 1.41L7 13m0 0l2.83 2.83a1 1 0 001.41-1.41L7 13z"
+                            />
                           </svg>
                           {/* Cart Badge */}
                           {cart.length > 0 && (
-                            <div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full text-xs flex items-center justify-center font-bold ${
-                              activeTab === 'cart'
-                                ? 'bg-white text-red-600'
-                                : 'bg-red-500 text-white'
-                            }`}>
-                              {cart.length > 9 ? '9+' : cart.length}
+                            <div
+                              className={`absolute -top-1 -right-1 w-4 h-4 rounded-full text-xs flex items-center justify-center font-bold ${
+                                activeTab === "cart"
+                                  ? "bg-white text-red-600"
+                                  : "bg-red-500 text-white"
+                              }`}
+                            >
+                              {cart.length > 9 ? "9+" : cart.length}
                             </div>
                           )}
                         </div>
@@ -335,25 +459,31 @@ const MahasiswaDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
                           <div className="flex items-center justify-between">
                             <span className="font-medium">Keranjang</span>
                             {cart.length > 0 && (
-                              <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${
-                                activeTab === 'cart'
-                                  ? 'bg-white/20 text-white'
-                                  : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
-                              }`}>
+                              <span
+                                className={`px-2 py-0.5 text-xs font-bold rounded-full ${
+                                  activeTab === "cart"
+                                    ? "bg-white/20 text-white"
+                                    : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+                                }`}
+                              >
                                 {cart.length}
                               </span>
                             )}
                           </div>
-                          <p className={`text-xs mt-0.5 ${
-                            activeTab === 'cart' 
-                              ? 'text-white/80' 
-                              : 'text-gray-500 dark:text-gray-400'
-                          }`}>
-                            {cart.length === 0 ? 'Keranjang kosong' : `${cart.length} item di keranjang`}
+                          <p
+                            className={`text-xs mt-0.5 ${
+                              activeTab === "cart"
+                                ? "text-white/80"
+                                : "text-gray-500 dark:text-gray-400"
+                            }`}
+                          >
+                            {cart.length === 0
+                              ? "Keranjang kosong"
+                              : `${cart.length} item di keranjang`}
                           </p>
                         </div>
                       </div>
-                      {activeTab === 'cart' && (
+                      {activeTab === "cart" && (
                         <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
                           <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
                         </div>
@@ -363,33 +493,49 @@ const MahasiswaDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
 
                   <li>
                     <button
-                      onClick={() => setActiveTab('orders')}
+                      onClick={() => setActiveTab("orders")}
                       className={`group w-full text-left px-4 py-3 rounded-xl transition-all duration-200 transform hover:scale-[1.02] relative ${
-                        activeTab === 'orders'
-                          ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/25'
-                          : 'text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-700 dark:hover:to-gray-600 hover:shadow-md'
+                        activeTab === "orders"
+                          ? "bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/25"
+                          : "text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-700 dark:hover:to-gray-600 hover:shadow-md"
                       }`}
                     >
                       <div className="flex items-center space-x-3">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${
-                          activeTab === 'orders' 
-                            ? 'bg-white/20 text-white' 
-                            : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/40'
-                        }`}>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                        <div
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${
+                            activeTab === "orders"
+                              ? "bg-white/20 text-white"
+                              : "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/40"
+                          }`}
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                            />
                           </svg>
                         </div>
                         <div>
                           <span className="font-medium">Pesanan Saya</span>
-                          <p className={`text-xs mt-0.5 ${
-                            activeTab === 'orders' 
-                              ? 'text-white/80' 
-                              : 'text-gray-500 dark:text-gray-400'
-                          }`}>Riwayat pesanan saya</p>
+                          <p
+                            className={`text-xs mt-0.5 ${
+                              activeTab === "orders"
+                                ? "text-white/80"
+                                : "text-gray-500 dark:text-gray-400"
+                            }`}
+                          >
+                            Riwayat pesanan saya
+                          </p>
                         </div>
                       </div>
-                      {activeTab === 'orders' && (
+                      {activeTab === "orders" && (
                         <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
                           <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
                         </div>
@@ -403,58 +549,113 @@ const MahasiswaDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
 
           {/* Main Content */}
           <div className="flex-1">
-            {activeTab === 'menu' && (
+            {activeTab === "menu" && (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Menu Makanan</h2>
+                <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">
+                  Menu Makanan
+                </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {menuItems.map((item) => (
-                    <div key={item.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                      <div className="text-4xl mb-2">{item.image}</div>
-                      <h3 className="font-semibold text-lg text-gray-900 dark:text-white">{item.name}</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{item.canteen}</p>
-                      <p className="text-lg font-bold text-red-600 mb-3">Rp {item.price.toLocaleString()}</p>
-                      <button
-                        onClick={() => addToCart(item)}
-                        disabled={!item.available}
-                        className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
-                          item.available
-                            ? 'bg-red-600 text-white hover:bg-red-700'
-                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        }`}
-                      >
-                        {item.available ? 'Tambah ke Keranjang' : 'Tidak Tersedia'}
-                      </button>
+                    <div
+                      key={item.id}
+                      className="bg-white dark:bg-gray-700 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow border border-gray-200 dark:border-gray-600"
+                    >
+                      <div className="relative">
+                        <img 
+                          src={item.image} 
+                          alt={item.name} 
+                          className="w-full h-48 object-cover"
+                          onError={(e) => {
+                            e.target.src = getDefaultMenuImage(item.type);
+                          }}
+                        />
+                        <div className="absolute top-2 right-2 bg-white/90 dark:bg-gray-800/90 rounded-full px-2 py-1">
+                          <span className="text-lg">{item.emoji}</span>
+                        </div>
+                      </div>
+                      <div className="p-4">
+                        <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-1">
+                          {item.name}
+                        </h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                          {item.canteen}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 line-clamp-2">
+                          {item.description}
+                        </p>
+                        <div className="flex justify-between items-center">
+                          <p className="text-lg font-bold text-red-600">
+                            Rp {item.price.toLocaleString()}
+                          </p>
+                          <button
+                            onClick={() => addToCart(item)}
+                            disabled={!item.available}
+                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                              item.available
+                                ? "bg-red-600 text-white hover:bg-red-700"
+                                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                            }`}
+                          >
+                            {item.available
+                              ? "Tambah"
+                              : "Habis"}
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {activeTab === 'cart' && (
+            {activeTab === "cart" && (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Keranjang Belanja</h2>
+                <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">
+                  Keranjang Belanja
+                </h2>
                 {cart.length === 0 ? (
                   <div className="text-center py-8">
                     <div className="text-6xl mb-4">🛒</div>
-                    <p className="text-gray-500 dark:text-gray-400">Keranjang masih kosong</p>
+                    <p className="text-gray-500 dark:text-gray-400">
+                      Keranjang masih kosong
+                    </p>
                   </div>
                 ) : (
                   <div>
                     <div className="space-y-4 mb-6">
                       {cart.map((item) => (
-                        <div key={item.cartId} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div
+                          key={item.cartId}
+                          className="flex items-center justify-between p-4 border rounded-lg bg-white dark:bg-gray-700"
+                        >
                           <div className="flex items-center space-x-4">
-                            <div className="text-2xl">{item.image}</div>
+                            <img 
+                              src={item.image} 
+                              alt={item.name}
+                              className="w-16 h-16 object-cover rounded-lg"
+                              onError={(e) => {
+                                e.target.src = getDefaultMenuImage(item.type);
+                              }}
+                            />
                             <div>
-                              <h4 className="font-medium text-gray-900 dark:text-white">{item.name}</h4>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">{item.canteen}</p>
+                              <h4 className="font-medium text-gray-900 dark:text-white">
+                                {item.name}
+                              </h4>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                {item.canteen}
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-500">
+                                Jumlah: {item.quantity}
+                              </p>
                             </div>
                           </div>
                           <div className="flex items-center space-x-4">
-                            <span className="font-semibold text-red-600">Rp {item.price.toLocaleString()}</span>
+                            <span className="font-semibold text-red-600">
+                              Rp {(item.price * item.quantity).toLocaleString()}
+                            </span>
                             <button
                               onClick={() => removeFromCart(item.cartId)}
-                              className="text-red-600 hover:text-red-800 font-medium"
+                              className="text-red-600 hover:text-red-800 font-medium px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
                             >
                               Hapus
                             </button>
@@ -464,10 +665,14 @@ const MahasiswaDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
                     </div>
                     <div className="border-t pt-4">
                       <div className="flex justify-between items-center mb-4">
-                        <span className="text-lg font-semibold text-gray-900 dark:text-white">Total:</span>
-                        <span className="text-2xl font-bold text-red-600">Rp {getTotalCart().toLocaleString()}</span>
+                        <span className="text-lg font-semibold text-gray-900 dark:text-white">
+                          Total:
+                        </span>
+                        <span className="text-2xl font-bold text-red-600">
+                          Rp {getTotalCart().toLocaleString()}
+                        </span>
                       </div>
-                      <button 
+                      <button
                         onClick={handleOrder}
                         className="w-full bg-red-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-red-700 transition-colors"
                       >
@@ -479,28 +684,36 @@ const MahasiswaDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
               </div>
             )}
 
-            {activeTab === 'orders' && (
+            {activeTab === "orders" && (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">Pesanan Saya</h2>
+                <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white">
+                  Pesanan Saya
+                </h2>
                 <div className="space-y-4">
                   {orders.map((order) => (
                     <div key={order.id} className="border rounded-lg p-4">
                       <div className="flex justify-between items-start mb-3">
                         <div>
-                          <h4 className="font-semibold text-gray-900 dark:text-white">Pesanan #{order.id}</h4>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">{order.canteen} • {order.date}</p>
+                          <h4 className="font-semibold text-gray-900 dark:text-white">
+                            Pesanan #{order.id}
+                          </h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {order.canteen} • {order.date}
+                          </p>
                         </div>
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                          order.status === 'Selesai'
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                        }`}>
+                        <span
+                          className={`px-3 py-1 rounded-full text-sm font-medium ${
+                            order.status === "Selesai"
+                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                              : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                          }`}
+                        >
                           {order.status}
                         </span>
                       </div>
                       <div className="mb-3">
                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Items: {order.items.join(', ')}
+                          Items: {order.items.join(", ")}
                         </p>
                       </div>
                       <div className="text-lg font-semibold text-red-600">
@@ -526,15 +739,15 @@ const MahasiswaDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
         <ProfileCompleteModal
           user={user}
           onComplete={() => {
-            setShowProfileModal(false)
-            setProfileComplete(true)
-            showToast('Profil berhasil dilengkapi!', 'success')
+            setShowProfileModal(false);
+            setProfileComplete(true);
+            showToast("Profil berhasil dilengkapi!", "success");
           }}
           onClose={() => setShowProfileModal(false)}
         />
       )}
     </div>
-  )
+  );
 };
 
 const LogoutModal = ({ isOpen, onClose, onConfirm }) => {
@@ -548,11 +761,20 @@ const LogoutModal = ({ isOpen, onClose, onConfirm }) => {
       {/* Modal */}
       <div className="flex min-h-full items-center justify-center p-4 text-center">
         <div className="relative transform overflow-hidden rounded-2xl bg-white dark:bg-gray-800 px-8 pb-6 pt-8 text-left shadow-2xl transition-all duration-300 w-full max-w-md border border-gray-200 dark:border-gray-700">
-
           {/* Icon */}
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30 mb-6">
-            <svg className="h-8 w-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            <svg
+              className="h-8 w-8 text-red-600 dark:text-red-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+              />
             </svg>
           </div>
 
@@ -587,4 +809,4 @@ const LogoutModal = ({ isOpen, onClose, onConfirm }) => {
   );
 };
 
-export default MahasiswaDashboard
+export default MahasiswaDashboard;

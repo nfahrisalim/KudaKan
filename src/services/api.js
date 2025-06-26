@@ -151,11 +151,18 @@ export const menuAPI = {
 
   getById: (id) => makeRequest(`/menu/${id}`),
 
-  create: (data) =>
-    makeRequest("/menu/", {
+  create: (data) => {
+    // Ensure deskripsi field is properly handled
+    const menuData = {
+      ...data,
+      deskripsi: data.deskripsi || null
+    };
+    
+    return makeRequest("/menu/", {
       method: "POST",
-      body: JSON.stringify(data),
-    }),
+      body: JSON.stringify(menuData),
+    });
+  },
 
   createWithImage: async (data, imageFile) => {
     const token = getToken();
@@ -185,6 +192,12 @@ export const menuAPI = {
     // Based on API schema, the fields should match exactly
     formData.append("id_kantin", kantinId);
     formData.append("nama_menu", data.nama_menu);
+    
+    // Add deskripsi field - API expects it even if null/empty
+    if (data.deskripsi) {
+      formData.append("deskripsi", data.deskripsi);
+    }
+    
     formData.append("harga", data.harga); // Keep as string or number as per API
     formData.append("tipe_menu", data.tipe_menu);
 
