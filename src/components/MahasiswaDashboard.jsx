@@ -564,7 +564,7 @@ const MahasiswaDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
                         <img 
                           src={item.image} 
                           alt={item.name} 
-                          className="w-full h-48 object-cover"
+                          className="w-full h-48 object-cover transition-all duration-300 hover:rotate-1 hover:scale-105 hover:shadow-xl cursor-pointer"
                           onError={(e) => {
                             e.target.src = getDefaultMenuImage(item.type);
                           }}
@@ -590,15 +590,18 @@ const MahasiswaDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
                           <button
                             onClick={() => addToCart(item)}
                             disabled={!item.available}
-                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                            className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 flex items-center gap-2 ${
                               item.available
-                                ? "bg-red-600 text-white hover:bg-red-700"
+                                ? "bg-gradient-to-r from-red-600 to-red-600 hover:from-red-500 hover:to-red-700 text-white hover:bg-red-700 hover:scale-105 hover:shadow-lg"
                                 : "bg-gray-300 text-gray-500 cursor-not-allowed"
                             }`}
                           >
-                            {item.available
-                              ? "Tambah"
-                              : "Habis"}
+                            {item.available && (
+                              <span className="transition-transform duration-300 hover:rotate-90">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shopping-cart-icon lucide-shopping-cart"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+                              </span>
+                            )}
+                            {item.available ? "Tambah" : "Habis"}
                           </button>
                         </div>
                       </div>
@@ -623,61 +626,146 @@ const MahasiswaDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
                 ) : (
                   <div>
                     <div className="space-y-4 mb-6">
-                      {cart.map((item) => (
+                      {cart.map((item, index) => (
                         <div
                           key={item.cartId}
-                          className="flex items-center justify-between p-4 border rounded-lg bg-white dark:bg-gray-700"
+                          className="group relative overflow-hidden rounded-2xl bg-gradient-to-r from-white/90 to-white/70 dark:from-gray-800/90 dark:to-gray-700/70 backdrop-blur-sm border border-gray-200/30 dark:border-gray-600/30 hover:border-red-400/50 dark:hover:border-red-400/50 transition-all duration-500 hover:shadow-2xl hover:shadow-red-500/10 dark:hover:shadow-red-500/20"
+                          style={{
+                            animationDelay: `${index * 100}ms`
+                          }}
                         >
-                          <div className="flex items-center space-x-4">
-                            <img 
-                              src={item.image} 
-                              alt={item.name}
-                              className="w-16 h-16 object-cover rounded-lg"
-                              onError={(e) => {
-                                e.target.src = getDefaultMenuImage(item.type);
-                              }}
-                            />
-                            <div>
-                              <h4 className="font-medium text-gray-900 dark:text-white">
-                                {item.name}
-                              </h4>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">
-                                {item.canteen}
-                              </p>
-                              <p className="text-xs text-gray-500 dark:text-gray-500">
-                                Jumlah: {item.quantity}
-                              </p>
+                          {/* Animated background gradient */}
+                          <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 to-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                          
+                          {/* <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-red-400/20 to-orange-400/20 opacity-0 group-hover:opacity-100 blur-sm transition-opacity duration-500 -z-10"></div> */}
+                          
+                          <div className="relative flex items-center justify-between p-6">
+                            <div className="flex items-center space-x-5">
+                              {/* Enhanced image with glow effect */}
+                              <div className="relative group/image">
+                                <div className="absolute inset-0 bg-gradient-to-r rounded-xl opacity-0 group-hover/image:opacity-20 blur-md transition-all duration-300"></div>
+                                <img 
+                                  src={item.image} 
+                                  alt={item.name}
+                                  className="relative w-20 h-20 object-cover rounded-xl border-2 border-gray-200/50 dark:border-gray-600/50 group-hover/image:border-red-400/50 transition-all duration-300 group-hover/image:scale-105 group-hover/image:shadow-lg"
+                                  onError={(e) => {
+                                    e.target.src = getDefaultMenuImage(item.type);
+                                  }}
+                                />
+                                {/* Quantity badge */}
+                                {/* <div className="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg animate-pulse">
+                                  {item.quantity}
+                                </div> */}
+                              </div>
+                              
+                              <div className="space-y-1">
+                                <h4 className="font-bold text-lg text-gray-900 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors duration-300">
+                                  {item.name}
+                                </h4>
+                                <p className="text-sm font-medium text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                                  <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                                  {item.canteen}
+                                </p>
+                                <div className="flex items-center gap-3 text-xs">
+                                  <span className="px-2 py-1 bg-gradient-to-r from-red-100 to-orange-100 dark:from-red-900/30 dark:to-orange-900/30 text-red-700 dark:text-red-300 rounded-full font-medium">
+                                    Jumlah: {item.quantity}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center space-x-6">
+                              <div className="text-right">
+                                <div className="text-xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">
+                                  Rp {(item.price * item.quantity).toLocaleString()}
+                                </div>
+                              </div>
+                              
+
+                              <button
+                                onClick={() => removeFromCart(item.cartId)}
+                                className="group/btn relative px-3 py-2 bg-gradient-to-r from-red-500/10 to-red-600/10 hover:from-red-500/20 hover:to-red-600/20 border border-red-300/30 hover:border-red-400/50 rounded-xl transition-all duration-300 hover:scale-110 hover:shadow-lg hover:shadow-red-500/25"
+                              >
+                                <div className="absolute inset-0 bg-gradient-to-r from-red-500 to-red-600 rounded-xl opacity-0 group-hover/btn:opacity-10 transition-opacity duration-300"></div>
+                                
+                                <div className="relative flex items-center gap-2">
+                                  <svg 
+                                    className="w-5 h-5 text-red-600 group-hover/btn:text-red-500 transition-colors duration-300" 
+                                    fill="none" 
+                                    stroke="currentColor" 
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                  <span className="text-sm font-medium text-red-600 group-hover/btn:text-red-500 hidden sm:inline">
+                                    Hapus
+                                  </span>
+                                </div>
+                                
+                                {/* Ripple effect */}
+                                {/* <div className="absolute inset-0 rounded-xl bg-red-400 opacity-0 group-active/btn:opacity-30 transition-opacity duration-150"></div> */}
+                              </button>
                             </div>
                           </div>
-                          <div className="flex items-center space-x-4">
-                            <span className="font-semibold text-red-600">
-                              Rp {(item.price * item.quantity).toLocaleString()}
-                            </span>
-                            <button
-                              onClick={() => removeFromCart(item.cartId)}
-                              className="text-red-600 hover:text-red-800 font-medium px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
-                            >
-                              Hapus
-                            </button>
-                          </div>
+                          
+                          {/* Animated bottom border */}
+                          <div className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-red-500 to-orange-500 w-0 group-hover:w-full transition-all duration-500 ease-out"></div>
+                          
+                          {/* Subtle scan line effect */}
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out"></div>
                         </div>
                       ))}
                     </div>
-                    <div className="border-t pt-4">
-                      <div className="flex justify-between items-center mb-4">
-                        <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                          Total:
-                        </span>
-                        <span className="text-2xl font-bold text-red-600">
-                          Rp {getTotalCart().toLocaleString()}
-                        </span>
+                    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white/90 to-white/70 dark:from-gray-800/90 dark:to-gray-700/70 backdrop-blur-sm border-t-4 border-gradient-to-r from-red-500 to-orange-500 shadow-2xl shadow-red-500/10 dark:shadow-red-500/20">
+                      {/* Animated background */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 via-orange-500/5 to-red-500/5 animate-pulse"></div>
+                      
+                      {/* Content */}
+                      <div className="relative p-6 space-y-6">
+                        {/* Total Section */}
+                        <div className="flex justify-between items-center">
+                          <div className="space-y-1">
+                            <span className="text-lg font-semibold text-gray-900 dark:text-white">
+                              Total Pembayaran:
+                            </span>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-2xl font-black bg-gradient-to-r from-red-600 via-red-500 to-orange-500 bg-clip-text text-transparent drop-shadow-lg animate-pulse">
+                              Rp {getTotalCart().toLocaleString()}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Separator with animation */}
+                        <div className="relative h-px bg-gradient-to-r from-transparent via-red-300 to-transparent">
+                          <div className="absolute inset-0 bg-gradient-to-r from-red-500 to-orange-500 scale-x-0 animate-pulse origin-center"></div>
+                        </div>
+                        
+                        {/* Order Button */}
+                        <button
+                          onClick={handleOrder}
+                          className="group relative w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white py-4 px-8 rounded-xl font-bold text-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-red-500/40 active:scale-95 overflow-hidden"
+                        >
+                          <div className="absolute inset-0 bg-gradient-to-r from-red-400 to-orange-400 opacity-0 group-hover:opacity-20 transition-opacity duration-100"></div>
+                          
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                          
+                          <div className="relative flex items-center justify-center gap-3">
+                            <svg className="w-6 h-6 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                            </svg>
+                            <span className="group-hover:tracking-wider transition-all duration-300">
+                              Pesan Sekarang
+                            </span>
+                            <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                            </svg>
+                          </div>
+                          
+                          <div className="absolute inset-0 rounded-xl bg-red-400 opacity-0 group-active:opacity-30 transition-opacity duration-150"></div>
+                        </button>
+                        
                       </div>
-                      <button
-                        onClick={handleOrder}
-                        className="w-full bg-red-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-red-700 transition-colors"
-                      >
-                        Pesan Sekarang
-                      </button>
                     </div>
                   </div>
                 )}
