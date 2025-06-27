@@ -70,6 +70,7 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
         name: menu.nama_menu,
         price: parseInt(menu.harga),
         available: true, // API tidak menyediakan field available, default true
+        image: menu.img_menu || getDefaultMenuImage(menu.tipe_menu),
         stock: 50, // Mock data untuk stock
         sold: Math.floor(Math.random() * 20), // Mock data untuk sold
         type: menu.tipe_menu,
@@ -704,58 +705,197 @@ const KantinDashboard = ({ user, onLogout, onGoHome, onGoProfile }) => {
             )}
 
             {activeTab === 'menu' && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Kelola Menu</h2>
-                  <button 
-                    onClick={() => setActiveTab('add-menu')}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                  >
-                    + Tambah Menu
-                  </button>
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white/90 to-white/70 dark:from-gray-800/90 dark:to-gray-700/70 backdrop-blur-xl border border-gray-200/30 dark:border-gray-600/30 shadow-2xl">
+                {/* Animated background pattern */}
+                <div className="absolute inset-0 opacity-5 dark:opacity-10">
+                  <div className="absolute inset-0" style={{
+                    backgroundImage: `
+                      radial-gradient(circle at 25% 25%, rgba(239, 68, 68, 0.1) 0%, transparent 50%),
+                      radial-gradient(circle at 75% 75%, rgba(249, 115, 22, 0.1) 0%, transparent 50%)
+                    `
+                  }}></div>
                 </div>
-                <div className="space-y-4">
-                  {menuItems.map((item) => (
-                    <div key={item.id} className="border rounded-lg p-4">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-gray-900 dark:text-white">{item.name}</h4>
-                          <p className="text-lg font-bold text-red-600 mt-1">Rp {item.price.toLocaleString()}</p>
-                          <div className="flex space-x-4 mt-2 text-sm text-gray-600 dark:text-gray-400">
-                            <span>Stok: {item.stock}</span>
-                            <span>Terjual: {item.sold}</span>
-                          </div>
+                
+                <div className="relative p-8">
+                  {/* Header Section */}
+                  <div className="flex justify-between items-center mb-8">
+                    <div className="space-y-2">
+                      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Kelola Menu</h2>
+                      <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                          <span>{menuItems.filter(item => item.available).length} Aktif</span>
                         </div>
-                        <div className="flex items-center space-x-3">
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                            item.available 
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                          }`}>
-                            {item.available ? 'Tersedia' : 'Habis'}
-                          </span>
-                          <button
-                            onClick={() => toggleMenuAvailability(item.id)}
-                            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
-                          >
-                            {item.available ? 'Nonaktifkan' : 'Aktifkan'}
-                          </button>
-                          <button
-                            onClick={() => handleEditMenuItem(item)}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleDeleteMenuItem(item.id)}
-                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
-                          >
-                            Hapus
-                          </button>
+                        <div className="w-1 h-4 bg-gray-300 dark:bg-gray-600"></div>
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                          <span>{menuItems.filter(item => !item.available).length} Nonaktif</span>
                         </div>
                       </div>
                     </div>
-                  ))}
+                    
+                    {/* Enhanced Add Button */}
+                    <button 
+                      onClick={() => setActiveTab('add-menu')}
+                      className="group relative px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white rounded-xl font-bold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-red-500/30 active:scale-95 overflow-hidden"
+                    >
+                      {/* Shimmer effect */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+                      
+                      <div className="relative flex items-center gap-2">
+                        <svg className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        <span>Tambah Menu</span>
+                      </div>
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    {menuItems.map((item, index) => (
+                      <div 
+                        key={item.id} 
+                        className="group relative overflow-hidden rounded-xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-600/50 hover:border-red-400/50 dark:hover:border-red-400/50 transition-all duration-500 hover:shadow-xl hover:shadow-red-500/10 dark:hover:shadow-red-500/20"
+                        style={{
+                          animationDelay: `${index * 50}ms`
+                        }}
+                      >
+                        <div className={`absolute top-0 left-0 w-full h-1 transition-all duration-300 ${
+                          item.available 
+                            ? 'bg-gradient-to-r from-green-500 to-emerald-500' 
+                            : 'bg-gradient-to-r from-red-500 to-orange-500'
+                        }`}></div>
+                        
+                        <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 to-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                        
+                        <div className="relative p-6">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1 space-y-3">
+                              <div className="flex items-start gap-4">
+                                {/* Menu image placeholder */}
+                                <div className="w-16 h-16 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-700 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform duration-300">
+                                  {/* <svg className="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                  </svg> */}
+                                  <img 
+                                    src={item.image} 
+                                    alt={item.name}
+                                    className="relative w-20 h-20 object-cover rounded-xl border-2 border-gray-200/50 dark:border-gray-600/50 group-hover/image:border-red-400/50 transition-all duration-300 group-hover/image:scale-105 group-hover/image:shadow-lg"
+                                    onError={(e) => {
+                                      e.target.src = getDefaultMenuImage(item.type);
+                                    }}
+                                  />
+                                  
+                                </div>
+                                
+                                <div className="flex-1 space-y-2">
+                                  <h4 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors duration-300">
+                                    {item.name}
+                                  </h4>
+                                  <div className="text-2xl font-black bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent">
+                                    Rp {item.price.toLocaleString()}
+                                  </div>
+                                  
+                                  <div className="flex items-center gap-6 text-sm">
+                                    {/* <div className="flex items-center gap-2">
+                                      <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                                        <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                        </svg>
+                                      </div>
+                                      <div>
+                                        <div className="font-semibold text-gray-900 dark:text-white">{item.stock}</div>
+                                        <div className="text-xs text-gray-500 dark:text-gray-400">Stok</div>
+                                      </div>
+                                    </div> */}
+                                    
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                                        <svg className="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                        </svg>
+                                      </div>
+                                      <div>
+                                        <div className="font-semibold text-gray-900 dark:text-white">{item.sold}</div>
+                                        <div className="text-xs text-gray-500 dark:text-gray-400">Terjual</div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-3">
+                              <div className={`px-4 py-2 rounded-xl text-sm font-bold transition-all duration-300 ${
+                                item.available 
+                                  ? 'bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-700' 
+                                  : 'bg-gradient-to-r from-red-100 to-orange-100 dark:from-red-900/30 dark:to-orange-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700'
+                              }`}>
+                                <div className="flex items-center gap-2">
+                                  <div className={`w-2 h-2 rounded-full animate-pulse ${
+                                    item.available ? 'bg-green-500' : 'bg-red-500'
+                                  }`}></div>
+                                  {item.available ? 'Tersedia' : 'Habis'}
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => toggleMenuAvailability(item.id)}
+                                  className={`group/btn px-4 py-2 rounded-lg font-medium transition-all duration-300 hover:scale-105 active:scale-95 ${
+                                    item.available
+                                      ? 'bg-orange-100 hover:bg-orange-200 dark:bg-orange-900/30 dark:hover:bg-orange-900/50 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-700'
+                                      : 'bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-700'
+                                  }`}
+                                >
+                                  <span className="text-sm group-hover/btn:scale-110 inline-block transition-transform duration-200">
+                                    {item.available ? 'Nonaktifkan' : 'Aktifkan'}
+                                  </span>
+                                </button>
+                                
+                                <button
+                                  onClick={() => handleEditMenuItem(item)}
+                                  className="group/btn p-3 bg-gradient-to-r from-blue-100 to-blue-200 hover:from-blue-200 hover:to-blue-300 dark:from-blue-900/30 dark:to-blue-800/30 dark:hover:from-blue-800/50 dark:hover:to-blue-700/50 text-blue-700 dark:text-blue-300 rounded-lg border border-blue-200 dark:border-blue-700 transition-all duration-300 hover:scale-110 active:scale-95"
+                                >
+                                  <svg className="w-4 h-4 group-hover/btn:rotate-12 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                </button>
+                                
+                                <button
+                                  onClick={() => handleDeleteMenuItem(item.id)}
+                                  className="group/btn p-3 bg-gradient-to-r from-red-100 to-red-200 hover:from-red-200 hover:to-red-300 dark:from-red-900/30 dark:to-red-800/30 dark:hover:from-red-800/50 dark:hover:to-red-700/50 text-red-700 dark:text-red-300 rounded-lg border border-red-200 dark:border-red-700 transition-all duration-300 hover:scale-110 active:scale-95"
+                                >
+                                  <svg className="w-4 h-4 group-hover/btn:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Empty State */}
+                  {menuItems.length === 0 && (
+                    <div className="text-center py-16">
+                      <div className="w-24 h-24 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-600 dark:to-gray-700 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg className="w-12 h-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Belum Ada Menu</h3>
+                      <p className="text-gray-600 dark:text-gray-400 mb-6">Mulai tambahkan menu pertama Anda</p>
+                      <button 
+                        onClick={() => setActiveTab('add-menu')}
+                        className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white rounded-xl font-bold transition-all duration-300 hover:scale-105"
+                      >
+                        Tambah Menu Pertama
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
