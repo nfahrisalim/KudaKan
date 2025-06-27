@@ -12,35 +12,31 @@ const MenuSection = ({ onViewAllMenus, user, onShowLogin, onAddToCart }) => {
 
   const fetchMenus = async () => {
     try {
-      setLoading(true)
-      
-      // Fetch kantins first
-      const kantins = await kantinAPI.getAll()
-      
-      // Fetch all menus
-      const allMenus = await menuAPI.getAll()
-      const menuData = allMenus.map(menu => {
-        const kantin = kantins.find(k => k.id_kantin === menu.id_kantin)
-        return {
-          id: menu.id_menu,
-          name: menu.nama_menu,
-          description: menu.deskripsi || 'Tidak ada deskripsi',
-          price: parseInt(menu.harga),
-          image: menu.img_menu || getDefaultImage(menu.tipe_menu),
-          type: menu.tipe_menu,
-          canteen: kantin ? kantin.nama_kantin : 'Unknown Kantin',
-          kantinId: menu.id_kantin,
-          originalData: menu
-        }
-      })
-      
-      setMenuItems(menuData)
+      setLoading(true);
+
+      // Ambil semua menu saja (tanpa kantin)
+      const allMenus = await menuAPI.getAll();
+
+      const menuData = allMenus.map(menu => ({
+        id: menu.id_menu,
+        name: menu.nama_menu,
+        description: menu.deskripsi || 'Tidak ada deskripsi',
+        price: parseInt(menu.harga),
+        image: menu.img_menu || getDefaultImage(menu.tipe_menu),
+        type: menu.tipe_menu,
+        canteen: 'Kantin Tidak Diketahui', // Placeholder karena kita tidak ambil nama kantin
+        kantinId: menu.id_kantin,
+        originalData: menu
+      }));
+
+      setMenuItems(menuData);
     } catch (error) {
-      console.error('Error fetching menus:', error)
+      console.error('Error fetching menus:', error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
+
 
   const getDefaultImage = (type) => {
     switch (type) {
